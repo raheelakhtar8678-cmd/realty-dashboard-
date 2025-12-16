@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Calendar, TrendingUp, Settings, TrendingDown, Percent, DollarSign, Calculator, Info, PiggyBank, Briefcase } from 'lucide-react';
+import { Target, Calendar, TrendingUp, Settings, TrendingDown, Percent, DollarSign, Calculator, Info, PiggyBank, Briefcase, AlertTriangle } from 'lucide-react';
 import { DateSummary, GlobalSettings } from '../types';
 
 interface Props {
@@ -101,23 +101,34 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
   // 10 Year Wealth Calculation
   // We assume monthly contribution = current month net
   const annualContribution = currentNet;
-  // const r = settings.reinvestmentRate / 100; // Not used in this simplified FV
   const marketReturn = 0.08; // Fixed assumption for "market"
   
   // FV of annuity formula accumulation
   const years = 10;
   let totalWealth = 0;
+  let theoreticalMaxWealth = 0; // Wealth with 0% tax and 0% inflation (Nominal)
+
   for(let i=1; i<=years; i++) {
+     // Scenario Path (Real)
      const yearlyGrowth = totalWealth * marketReturn;
-     const yearlyContribution = annualContribution; // Assuming constant income
+     const yearlyContribution = annualContribution; 
      const taxHit = (yearlyGrowth + yearlyContribution) * (settings.taxRate / 100);
      totalWealth = totalWealth + yearlyGrowth + yearlyContribution - taxHit;
-     // Apply annual withdrawal
      totalWealth -= settings.annualWithdrawal;
+
+     // Theoretical Path (Ideal) - What if no tax/inflation?
+     const idealGrowth = theoreticalMaxWealth * marketReturn;
+     const idealContribution = annualContribution;
+     theoreticalMaxWealth = theoreticalMaxWealth + idealGrowth + idealContribution;
+     theoreticalMaxWealth -= settings.annualWithdrawal;
   }
   
   // Adjust final for inflation purchasing power
   const inflationAdjWealth = totalWealth / Math.pow(1 + (settings.inflationRate/100), years);
+  
+  // Impact Metrics
+  const lostWealth = Math.max(0, theoreticalMaxWealth - inflationAdjWealth);
+  const efficiencyScore = theoreticalMaxWealth > 0 ? (inflationAdjWealth / theoreticalMaxWealth) * 100 : 0;
 
   return (
     <div className="bg-slate-800 border-l border-slate-700 h-full flex flex-col text-slate-200 overflow-hidden">
@@ -173,6 +184,31 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
                 <div className="text-[10px] text-slate-400 mt-1 flex justify-between">
                    <span>Purchasing Power (Adj. Inflation)</span>
                    <span className="text-indigo-400">Est.</span>
+                </div>
+                
+                {/* Wealth Erosion Visualizer */}
+                <div className="mt-4 pt-3 border-t border-slate-700/50">
+                    <div className="flex justify-between items-center mb-1">
+                       <span className="text-[10px] font-semibold text-slate-500 uppercase flex items-center gap-1">
+                          {efficiencyScore < 70 && <AlertTriangle size={10} className="text-amber-500" />}
+                          Impact Forecast
+                       </span>
+                       <span className="text-[10px] text-rose-400 font-mono">-${Math.round(lostWealth).toLocaleString()}</span>
+                    </div>
+                     <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden flex">
+                        <div 
+                           className={`h-full transition-all duration-700 ${efficiencyScore > 80 ? 'bg-emerald-500' : efficiencyScore > 60 ? 'bg-amber-500' : 'bg-rose-500'}`} 
+                           style={{ width: `${Math.min(efficiencyScore, 100)}%` }} 
+                        />
+                        <div 
+                           className="bg-slate-700/50 h-full" 
+                           style={{ width: `${Math.max(0, 100 - efficiencyScore)}%` }} 
+                        />
+                     </div>
+                     <div className="flex justify-between text-[9px] mt-1 text-slate-500 font-medium">
+                        <span className={efficiencyScore > 80 ? 'text-emerald-500/80' : 'text-slate-500'}>Retained: {Math.round(efficiencyScore)}%</span>
+                        <span className="text-rose-500/80">Lost: {Math.round(100 - efficiencyScore)}%</span>
+                     </div>
                 </div>
             </div>
 
@@ -230,6 +266,7 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
                     onChange={(e) => handleChange('inflationRate', Number(e.target.value))}
                     className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all"
                   />
+                  <div className="text-[10px] text-slate-500 text-right">High inflation erodes purchasing power over time.</div>
                 </div>
 
                 {/* Tax Rate */}
@@ -250,6 +287,7 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
                     onChange={(e) => handleChange('taxRate', Number(e.target.value))}
                     className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 transition-all"
                   />
+                  <div className="text-[10px] text-slate-500 text-right">Estimated effective tax rate on net income.</div>
                 </div>
 
                 {/* Withdrawals */}
