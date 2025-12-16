@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { Transaction, TransactionType, TransactionStatus } from '../types';
-import { Trash2, Plus, ArrowUpRight, ArrowDownLeft, CheckCircle2, Clock, Calendar, ArrowUp, ArrowDown, ArrowUpDown, DollarSign, Wallet, TrendingDown, LayoutList, PieChart, Activity, ArrowDownCircle } from 'lucide-react';
+import { Trash2, Plus, ArrowUpRight, ArrowDownLeft, CheckCircle2, Clock, Calendar, ArrowUp, ArrowDown, ArrowUpDown, DollarSign, Wallet, TrendingDown, LayoutList, PieChart, Activity, ArrowDownCircle, PiggyBank } from 'lucide-react';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../constants';
 
 interface Props {
@@ -52,13 +52,14 @@ const DateCell = ({ value, onChange }: { value: string, onChange: (val: string) 
   );
 };
 
-const TickerItem = ({ label, value, type }: { label: string, value: string, type: 'neutral' | 'positive' | 'negative' | 'info' | 'purple' }) => {
+const TickerItem = ({ label, value, type }: { label: string, value: string, type: 'neutral' | 'positive' | 'negative' | 'info' | 'purple' | 'cyan' }) => {
   const colors = {
     neutral: 'text-slate-400',
     positive: 'text-emerald-400',
     negative: 'text-rose-400',
     info: 'text-indigo-400',
-    purple: 'text-purple-400'
+    purple: 'text-purple-400',
+    cyan: 'text-cyan-400'
   };
 
   return (
@@ -71,7 +72,7 @@ const TickerItem = ({ label, value, type }: { label: string, value: string, type
 
 const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'date', direction: 'desc' });
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'withdrawal'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'withdrawal' | 'saving'>('all');
   
   const handleUpdate = (id: string, field: keyof Transaction, value: any) => {
     setTransactions(transactions.map(t => t.id === id ? { ...t, [field]: value } : t));
@@ -129,12 +130,14 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
     const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
     const withdrawal = transactions.filter(t => t.type === 'withdrawal').reduce((sum, t) => sum + t.amount, 0);
+    const saving = transactions.filter(t => t.type === 'saving').reduce((sum, t) => sum + t.amount, 0);
     const pending = transactions.filter(t => t.status === 'pending' && t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     
     const profit = income - expense;
-    const cashFlow = income - expense - withdrawal;
+    // Cash Flow = Income - Expense - Withdrawal - Saving
+    const cashFlow = income - expense - withdrawal - saving;
 
-    return { income, expense, withdrawal, profit, cashFlow, pending };
+    return { income, expense, withdrawal, saving, profit, cashFlow, pending };
   }, [transactions]);
 
   const SortIcon = ({ column }: { column: keyof Transaction }) => {
@@ -166,6 +169,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
         <div className="flex overflow-x-auto no-scrollbar py-2">
            <TickerItem label="Net Cash Flow" value={`$${metrics.cashFlow.toLocaleString()}`} type={metrics.cashFlow >= 0 ? 'info' : 'negative'} />
            <TickerItem label="Net Profit" value={`$${metrics.profit.toLocaleString()}`} type={metrics.profit >= 0 ? 'positive' : 'negative'} />
+           {metrics.saving > 0 && <TickerItem label="Saved" value={`$${metrics.saving.toLocaleString()}`} type="cyan" />}
            <TickerItem label="Revenue" value={`$${metrics.income.toLocaleString()}`} type="positive" />
            <TickerItem label="Expenses" value={`$${metrics.expense.toLocaleString()}`} type="negative" />
            {metrics.withdrawal > 0 && <TickerItem label="Withdrawn" value={`$${metrics.withdrawal.toLocaleString()}`} type="purple" />}
@@ -175,7 +179,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
         {/* Controls */}
         <div className="flex items-center justify-between xl:justify-end gap-3 px-4 py-3 bg-slate-900 xl:bg-transparent border-t xl:border-t-0 xl:border-l border-slate-800 flex-1">
            <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 shrink-0">
-              {['all', 'income', 'expense', 'withdrawal'].map((f) => (
+              {['all', 'income', 'expense', 'withdrawal', 'saving'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilterType(f as any)}
@@ -231,8 +235,11 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                    <div 
                       className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors w-fit hover:bg-slate-800"
                       onClick={() => {
-                          // Cycle types: income -> expense -> withdrawal -> income
-                          const next = t.type === 'income' ? 'expense' : t.type === 'expense' ? 'withdrawal' : 'income';
+                          // Cycle types: income -> expense -> withdrawal -> saving -> income
+                          const next = t.type === 'income' ? 'expense' 
+                            : t.type === 'expense' ? 'withdrawal' 
+                            : t.type === 'withdrawal' ? 'saving' 
+                            : 'income';
                           handleUpdate(t.id, 'type', next);
                       }}
                    >
@@ -254,6 +261,12 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                           <span className="text-xs font-bold text-purple-400">Withdrawal</span>
                         </>
                      )}
+                     {t.type === 'saving' && (
+                        <>
+                          <PiggyBank size={14} className="text-cyan-400" />
+                          <span className="text-xs font-bold text-cyan-400">Saving</span>
+                        </>
+                     )}
                    </div>
                 </td>
                 <td className="p-2">
@@ -266,7 +279,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                         ? INCOME_CATEGORIES.map(c => <option key={c} value={c} className="bg-slate-900">{c}</option>)
                         : t.type === 'expense'
                           ? EXPENSE_CATEGORIES.map(c => <option key={c} value={c} className="bg-slate-900">{c}</option>)
-                          : <option value="Owner Draw" className="bg-slate-900">Owner Draw</option>
+                          : <option value="Transfer" className="bg-slate-900">Transfer</option>
                       }
                       <option value="Other" className="bg-slate-900">Other</option>
                    </select>
@@ -276,6 +289,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                      <span className={`absolute left-3 top-2 text-xs transition-colors 
                         ${t.type === 'income' ? 'text-emerald-500/50 group-focus-within/amt:text-emerald-500' 
                         : t.type === 'expense' ? 'text-rose-500/50 group-focus-within/amt:text-rose-500'
+                        : t.type === 'saving' ? 'text-cyan-500/50 group-focus-within/amt:text-cyan-500'
                         : 'text-purple-500/50 group-focus-within/amt:text-purple-500'}`}>$</span>
                      <input 
                       type="number" 
@@ -284,6 +298,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                       className={`w-full bg-transparent border-none rounded px-3 py-1.5 pl-6 font-mono text-right outline-none focus:bg-slate-800 transition-all font-bold 
                          ${t.type === 'income' ? 'text-emerald-400' 
                          : t.type === 'expense' ? 'text-rose-400'
+                         : t.type === 'saving' ? 'text-cyan-400'
                          : 'text-purple-400'}`}
                     />
                   </div>

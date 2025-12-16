@@ -92,6 +92,8 @@ export const INITIAL_SETTINGS: GlobalSettings = {
   taxRate: 25.0,
   annualWithdrawal: 0,
   rmdStartYear: 10,
+  monthlyRevenueGoal: 20000,
+  goalType: 'revenue',
 };
 
 export const EXPENSE_CATEGORIES = [

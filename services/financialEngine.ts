@@ -10,12 +10,14 @@ export const calculateMetrics = (transactions: Transaction[], settings: GlobalSe
         }
       } else if (t.type === 'withdrawal') {
         acc.totalWithdrawal += t.amount;
+      } else if (t.type === 'saving') {
+        acc.totalSaving += t.amount;
       } else {
         acc.totalExpense += t.amount;
       }
       return acc;
     },
-    { totalIncome: 0, totalExpense: 0, totalWithdrawal: 0, pendingCommissions: 0 }
+    { totalIncome: 0, totalExpense: 0, totalWithdrawal: 0, totalSaving: 0, pendingCommissions: 0 }
   );
 
   // Apply Scenarios
@@ -41,16 +43,15 @@ export const calculateMetrics = (transactions: Transaction[], settings: GlobalSe
   // Net Income (Profit) = (Income - Expense) * Tax Multiplier
   const netIncome = (raw.totalIncome - raw.totalExpense) * taxMultiplier;
 
-  // Net Cash Flow = Income - Expense - Withdrawal
-  // (Withdrawals are usually post-tax cash distributions, so we subtract raw amount from raw profit for simple cash view, 
-  // or more accurately: Net Cash Available = Net Profit - Withdrawals. 
-  // For this dashboard, we will define Net Cash Flow as simply: Inflow - Outflow(Exp) - Outflow(Draw))
-  const netCashFlow = raw.totalIncome - raw.totalExpense - raw.totalWithdrawal;
+  // Net Cash Flow = Income - Expense - Withdrawal - Saving
+  // Saving is treated as money moved "out" of operating cash flow into a separate bucket.
+  const netCashFlow = raw.totalIncome - raw.totalExpense - raw.totalWithdrawal - raw.totalSaving;
 
   return {
     totalIncome: raw.totalIncome,
     totalExpense: raw.totalExpense,
     totalWithdrawal: raw.totalWithdrawal,
+    totalSaving: raw.totalSaving,
     grossIncome: raw.totalIncome - raw.totalExpense,
     netIncome: netIncome,
     netCashFlow: netCashFlow,
@@ -65,16 +66,18 @@ export const getChartData = (transactions: Transaction[], settings: GlobalSettin
   const sorted = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
   // Group by Month (YYYY-MM)
-  const monthlyMap = new Map<string, { income: number; expense: number; withdrawal: number }>();
+  const monthlyMap = new Map<string, { income: number; expense: number; withdrawal: number; saving: number }>();
   
   sorted.forEach(t => {
     const monthKey = t.date.substring(0, 7); // YYYY-MM
-    const current = monthlyMap.get(monthKey) || { income: 0, expense: 0, withdrawal: 0 };
+    const current = monthlyMap.get(monthKey) || { income: 0, expense: 0, withdrawal: 0, saving: 0 };
     
     if (t.type === 'income') {
       current.income += t.amount;
     } else if (t.type === 'withdrawal') {
       current.withdrawal += t.amount;
+    } else if (t.type === 'saving') {
+      current.saving += t.amount;
     } else {
       current.expense += t.amount;
     }
@@ -182,6 +185,7 @@ export const getTimeSummaries = (transactions: Transaction[], settings: GlobalSe
     const income = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const expense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const withdrawal = filtered.filter(t => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
+    const saving = filtered.filter(t => t.type === 'saving').reduce((s, t) => s + t.amount, 0);
     
     // Summary Net usually refers to Cash Flow in a quick view
     return {
@@ -189,7 +193,8 @@ export const getTimeSummaries = (transactions: Transaction[], settings: GlobalSe
       income,
       expense,
       withdrawal,
-      net: income - expense - withdrawal
+      saving,
+      net: income - expense - withdrawal - saving
     };
   };
 

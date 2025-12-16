@@ -4,12 +4,13 @@ import { INITIAL_TRANSACTIONS, INITIAL_SETTINGS } from './constants';
 import { Transaction, GlobalSettings } from './types';
 import { calculateMetrics, getChartData, getCategoryData, getTimeSummaries, getIncomeProjection } from './services/financialEngine';
 import { StorageService } from './services/storage';
+import { supabase } from './services/supabaseClient';
 import ControlPanel from './components/ControlPanel';
 import PortfolioGrid from './components/PortfolioGrid';
 import AuthScreen from './components/AuthScreen';
-import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle, Menu, X, PieChart as PieIcon, Clock, ArrowUpRight, ArrowDownLeft, Target } from 'lucide-react';
+import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle, Menu, X, PieChart as PieIcon, Clock, ArrowUpRight, ArrowDownLeft, Target, CloudOff, Cloud, PiggyBank } from 'lucide-react';
 
-const SESSION_KEY = 'realty_current_user';
+const SESSION_KEY = 'realty_current_user_email';
 
 export default function App() {
   // Auth State
@@ -26,13 +27,23 @@ export default function App() {
   // Mobile UI State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // 1. Check for existing session on mount
+  // 1. Check for existing session on mount (Supabase or Local)
   useEffect(() => {
-    const savedUser = localStorage.getItem(SESSION_KEY);
-    if (savedUser) {
-      setCurrentUser(savedUser);
-    }
-    setIsAuthChecking(false);
+    const checkSession = async () => {
+       if (supabase) {
+         const { data: { session } } = await supabase.auth.getSession();
+         if (session?.user?.email) {
+           setCurrentUser(session.user.email);
+           setIsAuthChecking(false);
+           return;
+         }
+       }
+       // Fallback
+       const savedUser = localStorage.getItem(SESSION_KEY);
+       if (savedUser) setCurrentUser(savedUser);
+       setIsAuthChecking(false);
+    };
+    checkSession();
   }, []);
 
   // 2. Load User Data when currentUser changes
@@ -46,7 +57,7 @@ export default function App() {
           setSettings(data.settings);
           setIsDataLoaded(true);
         } catch (e) {
-          console.error("Failed to load user data");
+          console.error("Failed to load user data", e);
         } finally {
           setIsDataLoading(false);
         }
@@ -60,7 +71,7 @@ export default function App() {
     if (currentUser && isDataLoaded) {
       const timer = setTimeout(() => {
         StorageService.saveData(currentUser, { transactions, settings });
-      }, 1000);
+      }, 2000); // Debounce save
       return () => clearTimeout(timer);
     }
   }, [transactions, settings, currentUser, isDataLoaded]);
@@ -99,7 +110,8 @@ export default function App() {
     localStorage.setItem(SESSION_KEY, user);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (supabase) await supabase.auth.signOut();
     setCurrentUser(null);
     setIsDataLoaded(false);
     setTransactions(INITIAL_TRANSACTIONS); 
@@ -122,6 +134,17 @@ export default function App() {
       </div>
     );
   }
+
+  // Calculate Progress based on user preference (Revenue or Savings)
+  const goalProgress = settings.goalType === 'savings' 
+    ? Math.min((timeSummaries.month.saving / settings.monthlyRevenueGoal) * 100, 100)
+    : Math.min((timeSummaries.month.income / settings.monthlyRevenueGoal) * 100, 100);
+
+  const goalCurrentValue = settings.goalType === 'savings' 
+    ? timeSummaries.month.saving 
+    : timeSummaries.month.income;
+
+  const isOnline = StorageService.isOnline();
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-slate-900 text-slate-100 overflow-hidden font-sans">
@@ -202,9 +225,22 @@ export default function App() {
            </div>
 
            <div className="flex items-center gap-3">
+              {/* Sync Status Indicator */}
+              {!isOnline ? (
+                <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-[10px] text-slate-400" title="Data is saved locally. Connect Supabase to sync.">
+                   <CloudOff size={12} className="text-amber-500" />
+                   <span>Offline Mode</span>
+                </div>
+              ) : (
+                <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400" title="Synced with Cloud">
+                   <Cloud size={12} className="text-emerald-500" />
+                   <span>Synced</span>
+                </div>
+              )}
+
               <div className="hidden sm:flex items-center gap-2 text-xs text-slate-300 bg-slate-800 py-1 px-3 rounded-full border border-slate-700">
                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                 <span className="font-medium">{currentUser}</span>
+                 <span className="font-medium max-w-[120px] truncate">{currentUser}</span>
               </div>
               <button 
                 onClick={handleLogout}
@@ -225,26 +261,30 @@ export default function App() {
                 
                 {/* Monthly Target Header - Moved here for visibility */}
                 <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-4 rounded-xl border border-slate-700 shadow-lg flex flex-col md:flex-row items-center gap-4 relative overflow-hidden">
-                   <div className="absolute left-0 top-0 h-full w-1 bg-emerald-500"></div>
+                   <div className={`absolute left-0 top-0 h-full w-1 ${settings.goalType === 'savings' ? 'bg-cyan-500' : 'bg-emerald-500'}`}></div>
                    <div className="flex items-center gap-3 min-w-[200px]">
-                      <div className="p-2 bg-emerald-500/10 rounded-full">
-                         <Target size={24} className="text-emerald-500" />
+                      <div className={`p-2 rounded-full ${settings.goalType === 'savings' ? 'bg-cyan-500/10' : 'bg-emerald-500/10'}`}>
+                         <Target size={24} className={settings.goalType === 'savings' ? 'text-cyan-500' : 'text-emerald-500'} />
                       </div>
                       <div>
-                         <div className="text-xs text-slate-400 uppercase font-bold tracking-wider">Monthly Target</div>
-                         <div className="text-lg font-bold text-white font-mono">$20,000</div>
+                         <div className="text-xs text-slate-400 uppercase font-bold tracking-wider">
+                           {settings.goalType === 'savings' ? 'Monthly Savings Goal' : 'Monthly Revenue Goal'}
+                         </div>
+                         <div className="text-lg font-bold text-white font-mono">${settings.monthlyRevenueGoal.toLocaleString()}</div>
                       </div>
                    </div>
                    
                    <div className="flex-1 w-full">
                       <div className="flex justify-between items-end mb-1">
-                         <span className="text-xs text-emerald-400 font-medium">{Math.round((timeSummaries.month.income / 20000) * 100)}% Achieved</span>
-                         <span className="text-xs text-slate-500 font-mono">${timeSummaries.month.income.toLocaleString()} / $20,000</span>
+                         <span className={`text-xs font-medium ${settings.goalType === 'savings' ? 'text-cyan-400' : 'text-emerald-400'}`}>
+                           {Math.round(goalProgress)}% Achieved
+                         </span>
+                         <span className="text-xs text-slate-500 font-mono">${goalCurrentValue.toLocaleString()} / ${settings.monthlyRevenueGoal.toLocaleString()}</span>
                       </div>
                       <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
                         <div 
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]" 
-                          style={{ width: `${Math.min((timeSummaries.month.income / 20000) * 100, 100)}%` }}
+                          className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.5)] ${settings.goalType === 'savings' ? 'bg-cyan-500 shadow-cyan-500/50' : 'bg-emerald-500 shadow-emerald-500/50'}`} 
+                          style={{ width: `${goalProgress}%` }}
                         ></div>
                       </div>
                    </div>
@@ -421,10 +461,12 @@ export default function App() {
                                   <div className={`p-2 rounded-full 
                                      ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' 
                                      : t.type === 'expense' ? 'bg-rose-500/10 text-rose-500'
+                                     : t.type === 'saving' ? 'bg-cyan-500/10 text-cyan-500'
                                      : 'bg-purple-500/10 text-purple-500'}`}>
                                      {t.type === 'income' && <ArrowUpRight size={14} />}
                                      {t.type === 'expense' && <ArrowDownLeft size={14} />}
                                      {t.type === 'withdrawal' && <DollarSign size={14} />}
+                                     {t.type === 'saving' && <PiggyBank size={14} />}
                                   </div>
                                   <div>
                                      <div className="text-sm font-medium text-slate-200">{t.description}</div>
@@ -434,6 +476,7 @@ export default function App() {
                                <div className={`font-mono font-bold text-sm 
                                   ${t.type === 'income' ? 'text-emerald-400' 
                                   : t.type === 'expense' ? 'text-slate-200' 
+                                  : t.type === 'saving' ? 'text-cyan-400' 
                                   : 'text-purple-400'}`}>
                                   {t.type === 'income' ? '+' : '-'}${t.amount.toLocaleString()}
                                </div>

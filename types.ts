@@ -1,4 +1,4 @@
-export type TransactionType = 'income' | 'expense' | 'withdrawal';
+export type TransactionType = 'income' | 'expense' | 'withdrawal' | 'saving';
 export type TransactionStatus = 'pending' | 'completed';
 
 export interface Transaction {
@@ -16,15 +16,17 @@ export interface DateSummary {
   income: number;
   expense: number;
   withdrawal: number;
-  net: number; // Cash Flow (Income - Expense - Withdrawal)
+  saving: number;
+  net: number; // Cash Flow
 }
 
 export interface DashboardMetrics {
   totalIncome: number;
   totalExpense: number;
   totalWithdrawal: number;
+  totalSaving: number;
   netIncome: number; // Post-tax Profit (Income - Expense) * TaxRate
-  netCashFlow: number; // Liquid Cash (Income - Expense - Withdrawal)
+  netCashFlow: number; // Liquid Cash (Income - Expense - Withdrawal - Saving)
   grossIncome: number; // Pre-tax
   pendingCommissions: number; // Post-tax value
   projectedNextYearExpense: number; // Inflation adjusted
@@ -37,4 +39,6 @@ export interface GlobalSettings {
   taxRate: number; // %
   annualWithdrawal: number;
   rmdStartYear: number;
+  monthlyRevenueGoal: number; // Customizable Goal Amount
+  goalType: 'revenue' | 'savings'; // Toggle between tracking Income or Savings
 }
