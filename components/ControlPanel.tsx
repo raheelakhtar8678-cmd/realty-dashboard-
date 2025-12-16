@@ -26,9 +26,15 @@ const SummaryCard = ({ title, summary }: { title: string, summary: DateSummary }
          <span className="text-slate-400">Spending</span>
          <span className="text-rose-400 font-mono">${summary.expense.toLocaleString()}</span>
        </div>
+       {summary.withdrawal > 0 && (
+          <div className="flex justify-between items-center text-sm">
+           <span className="text-slate-400">Withdrawn</span>
+           <span className="text-purple-400 font-mono">${summary.withdrawal.toLocaleString()}</span>
+         </div>
+       )}
        <div className="h-px bg-slate-600 my-2"></div>
        <div className="flex justify-between items-center">
-         <span className="text-slate-200 font-medium">Net</span>
+         <span className="text-slate-200 font-medium">Net Flow</span>
          <span className={`font-mono font-bold ${summary.net >= 0 ? 'text-indigo-400' : 'text-rose-400'}`}>
            {summary.net >= 0 ? '+' : ''}${summary.net.toLocaleString()}
          </span>
@@ -103,26 +109,7 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
             <SummaryCard title="This Week" summary={summaries.week} />
             <SummaryCard title="This Month" summary={summaries.month} />
 
-            <div className="mt-8 pt-8 border-t border-slate-700">
-              <div className="flex items-center gap-2 mb-4 text-emerald-400">
-                <Target size={20} />
-                <h2 className="text-lg font-semibold tracking-wide uppercase text-xs">Monthly Target</h2>
-              </div>
-              <div className="bg-slate-900 p-4 rounded-lg border border-slate-700 text-center relative overflow-hidden">
-                 <div className="absolute top-0 left-0 w-full h-1 bg-slate-800"></div>
-                 <p className="text-xs text-slate-500 mb-1">Goal: $20,000</p>
-                 <div className="text-2xl font-mono text-white font-bold">${summaries.month.income.toLocaleString()}</div>
-                 <div className="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
-                    <div 
-                      className="bg-emerald-500 h-full rounded-full transition-all duration-1000 ease-out" 
-                      style={{ width: `${Math.min((summaries.month.income / 20000) * 100, 100)}%` }}
-                    ></div>
-                 </div>
-                 <p className="text-xs text-right text-emerald-500 mt-1 font-mono">
-                   {Math.round((summaries.month.income / 20000) * 100)}%
-                 </p>
-              </div>
-            </div>
+            {/* Monthly Target removed from here */}
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">

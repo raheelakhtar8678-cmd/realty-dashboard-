@@ -1,4 +1,4 @@
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'withdrawal';
 export type TransactionStatus = 'pending' | 'completed';
 
 export interface Transaction {
@@ -15,13 +15,16 @@ export interface DateSummary {
   period: string;
   income: number;
   expense: number;
-  net: number;
+  withdrawal: number;
+  net: number; // Cash Flow (Income - Expense - Withdrawal)
 }
 
 export interface DashboardMetrics {
   totalIncome: number;
   totalExpense: number;
-  netIncome: number; // Post-tax
+  totalWithdrawal: number;
+  netIncome: number; // Post-tax Profit (Income - Expense) * TaxRate
+  netCashFlow: number; // Liquid Cash (Income - Expense - Withdrawal)
   grossIncome: number; // Pre-tax
   pendingCommissions: number; // Post-tax value
   projectedNextYearExpense: number; // Inflation adjusted

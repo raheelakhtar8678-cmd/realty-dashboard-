@@ -7,7 +7,7 @@ import { StorageService } from './services/storage';
 import ControlPanel from './components/ControlPanel';
 import PortfolioGrid from './components/PortfolioGrid';
 import AuthScreen from './components/AuthScreen';
-import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle, Menu, X, PieChart as PieIcon, Clock, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle, Menu, X, PieChart as PieIcon, Clock, ArrowUpRight, ArrowDownLeft, Target } from 'lucide-react';
 
 const SESSION_KEY = 'realty_current_user';
 
@@ -86,7 +86,7 @@ export default function App() {
           <div className="space-y-1">
              <div className="flex justify-between gap-4"><span className="text-emerald-400">Income</span><span className="text-white font-mono">${income.toLocaleString()}</span></div>
              <div className="flex justify-between gap-4"><span className="text-rose-400">Expense</span><span className="text-white font-mono">${expense.toLocaleString()}</span></div>
-             <div className="flex justify-between gap-4 border-t border-slate-700 pt-1 mt-1"><span className="text-indigo-400">Net</span><span className="text-white font-mono">${net.toLocaleString()}</span></div>
+             <div className="flex justify-between gap-4 border-t border-slate-700 pt-1 mt-1"><span className="text-indigo-400">Net Profit</span><span className="text-white font-mono">${net.toLocaleString()}</span></div>
           </div>
         </div>
       );
@@ -223,6 +223,33 @@ export default function App() {
           {activeTab === 'overview' && (
              <div className="p-4 lg:p-8 max-w-7xl mx-auto w-full space-y-6 animate-in fade-in zoom-in-95 duration-300">
                 
+                {/* Monthly Target Header - Moved here for visibility */}
+                <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-4 rounded-xl border border-slate-700 shadow-lg flex flex-col md:flex-row items-center gap-4 relative overflow-hidden">
+                   <div className="absolute left-0 top-0 h-full w-1 bg-emerald-500"></div>
+                   <div className="flex items-center gap-3 min-w-[200px]">
+                      <div className="p-2 bg-emerald-500/10 rounded-full">
+                         <Target size={24} className="text-emerald-500" />
+                      </div>
+                      <div>
+                         <div className="text-xs text-slate-400 uppercase font-bold tracking-wider">Monthly Target</div>
+                         <div className="text-lg font-bold text-white font-mono">$20,000</div>
+                      </div>
+                   </div>
+                   
+                   <div className="flex-1 w-full">
+                      <div className="flex justify-between items-end mb-1">
+                         <span className="text-xs text-emerald-400 font-medium">{Math.round((timeSummaries.month.income / 20000) * 100)}% Achieved</span>
+                         <span className="text-xs text-slate-500 font-mono">${timeSummaries.month.income.toLocaleString()} / $20,000</span>
+                      </div>
+                      <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
+                        <div 
+                          className="bg-emerald-500 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]" 
+                          style={{ width: `${Math.min((timeSummaries.month.income / 20000) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                   </div>
+                </div>
+
                 {/* Metrics Grid - Optimized for Mobile */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
                    <div className="bg-slate-800 p-3 lg:p-5 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
@@ -249,13 +276,13 @@ export default function App() {
                       <div className="text-xl lg:text-3xl font-bold text-white font-mono tracking-tight">${metrics.netIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                       <div className="text-[10px] lg:text-xs text-indigo-400 mt-2 font-medium bg-indigo-500/10 px-1.5 py-0.5 rounded w-fit">Post-tax estimate</div>
                    </div>
-                   <div className="bg-slate-800 p-3 lg:p-5 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-amber-500/30 transition-colors">
+                   <div className="bg-slate-800 p-3 lg:p-5 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-purple-500/30 transition-colors">
                       <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Building size={40} className="text-amber-500"/>
+                        <DollarSign size={40} className="text-purple-500"/>
                       </div>
-                      <div className="text-[10px] lg:text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Pipeline</div>
-                      <div className="text-xl lg:text-3xl font-bold text-white font-mono tracking-tight">${metrics.pendingCommissions.toLocaleString()}</div>
-                      <div className="text-[10px] lg:text-xs text-amber-400 mt-2 font-medium bg-amber-500/10 px-1.5 py-0.5 rounded w-fit">3 Deals Pending</div>
+                      <div className="text-[10px] lg:text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Net Cash Flow</div>
+                      <div className="text-xl lg:text-3xl font-bold text-white font-mono tracking-tight">${metrics.netCashFlow.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                      <div className="text-[10px] lg:text-xs text-purple-400 mt-2 font-medium bg-purple-500/10 px-1.5 py-0.5 rounded w-fit">After Withdrawals</div>
                    </div>
                 </div>
 
@@ -391,15 +418,23 @@ export default function App() {
                          {transactions.slice(0, 5).map(t => (
                             <div key={t.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
                                <div className="flex items-center gap-3">
-                                  <div className={`p-2 rounded-full ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                                     {t.type === 'income' ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
+                                  <div className={`p-2 rounded-full 
+                                     ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' 
+                                     : t.type === 'expense' ? 'bg-rose-500/10 text-rose-500'
+                                     : 'bg-purple-500/10 text-purple-500'}`}>
+                                     {t.type === 'income' && <ArrowUpRight size={14} />}
+                                     {t.type === 'expense' && <ArrowDownLeft size={14} />}
+                                     {t.type === 'withdrawal' && <DollarSign size={14} />}
                                   </div>
                                   <div>
                                      <div className="text-sm font-medium text-slate-200">{t.description}</div>
                                      <div className="text-xs text-slate-500">{t.date}</div>
                                   </div>
                                </div>
-                               <div className={`font-mono font-bold text-sm ${t.type === 'income' ? 'text-emerald-400' : 'text-slate-200'}`}>
+                               <div className={`font-mono font-bold text-sm 
+                                  ${t.type === 'income' ? 'text-emerald-400' 
+                                  : t.type === 'expense' ? 'text-slate-200' 
+                                  : 'text-purple-400'}`}>
                                   {t.type === 'income' ? '+' : '-'}${t.amount.toLocaleString()}
                                </div>
                             </div>

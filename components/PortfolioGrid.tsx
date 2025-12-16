@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { Transaction, TransactionType, TransactionStatus } from '../types';
-import { Trash2, Plus, ArrowUpRight, ArrowDownLeft, CheckCircle2, Clock, Calendar, ArrowUp, ArrowDown, ArrowUpDown, DollarSign, Wallet, TrendingDown, LayoutList, PieChart, Activity } from 'lucide-react';
+import { Trash2, Plus, ArrowUpRight, ArrowDownLeft, CheckCircle2, Clock, Calendar, ArrowUp, ArrowDown, ArrowUpDown, DollarSign, Wallet, TrendingDown, LayoutList, PieChart, Activity, ArrowDownCircle } from 'lucide-react';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../constants';
 
 interface Props {
@@ -52,12 +52,13 @@ const DateCell = ({ value, onChange }: { value: string, onChange: (val: string) 
   );
 };
 
-const TickerItem = ({ label, value, type }: { label: string, value: string, type: 'neutral' | 'positive' | 'negative' | 'info' }) => {
+const TickerItem = ({ label, value, type }: { label: string, value: string, type: 'neutral' | 'positive' | 'negative' | 'info' | 'purple' }) => {
   const colors = {
     neutral: 'text-slate-400',
     positive: 'text-emerald-400',
     negative: 'text-rose-400',
     info: 'text-indigo-400',
+    purple: 'text-purple-400'
   };
 
   return (
@@ -70,7 +71,7 @@ const TickerItem = ({ label, value, type }: { label: string, value: string, type
 
 const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'date', direction: 'desc' });
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'withdrawal'>('all');
   
   const handleUpdate = (id: string, field: keyof Transaction, value: any) => {
     setTransactions(transactions.map(t => t.id === id ? { ...t, [field]: value } : t));
@@ -127,8 +128,13 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
   const metrics = useMemo(() => {
     const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const withdrawal = transactions.filter(t => t.type === 'withdrawal').reduce((sum, t) => sum + t.amount, 0);
     const pending = transactions.filter(t => t.status === 'pending' && t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    return { income, expense, net: income - expense, pending };
+    
+    const profit = income - expense;
+    const cashFlow = income - expense - withdrawal;
+
+    return { income, expense, withdrawal, profit, cashFlow, pending };
   }, [transactions]);
 
   const SortIcon = ({ column }: { column: keyof Transaction }) => {
@@ -158,22 +164,24 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
         
         {/* Simple Stats Ticker */}
         <div className="flex overflow-x-auto no-scrollbar py-2">
-           <TickerItem label="Net Cash Flow" value={`$${metrics.net.toLocaleString()}`} type={metrics.net >= 0 ? 'info' : 'negative'} />
-           <TickerItem label="Total Revenue" value={`$${metrics.income.toLocaleString()}`} type="positive" />
-           <TickerItem label="Total Expenses" value={`$${metrics.expense.toLocaleString()}`} type="negative" />
+           <TickerItem label="Net Cash Flow" value={`$${metrics.cashFlow.toLocaleString()}`} type={metrics.cashFlow >= 0 ? 'info' : 'negative'} />
+           <TickerItem label="Net Profit" value={`$${metrics.profit.toLocaleString()}`} type={metrics.profit >= 0 ? 'positive' : 'negative'} />
+           <TickerItem label="Revenue" value={`$${metrics.income.toLocaleString()}`} type="positive" />
+           <TickerItem label="Expenses" value={`$${metrics.expense.toLocaleString()}`} type="negative" />
+           {metrics.withdrawal > 0 && <TickerItem label="Withdrawn" value={`$${metrics.withdrawal.toLocaleString()}`} type="purple" />}
            <TickerItem label="Pending" value={`$${metrics.pending.toLocaleString()}`} type="neutral" />
         </div>
 
         {/* Controls */}
         <div className="flex items-center justify-between xl:justify-end gap-3 px-4 py-3 bg-slate-900 xl:bg-transparent border-t xl:border-t-0 xl:border-l border-slate-800 flex-1">
            <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 shrink-0">
-              {['all', 'income', 'expense'].map((f) => (
+              {['all', 'income', 'expense', 'withdrawal'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilterType(f as any)}
                   className={`px-3 py-1.5 text-[10px] uppercase font-bold rounded-md transition-all ${filterType === f ? 'bg-slate-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}
                 >
-                  {f}
+                  {f === 'withdrawal' ? 'Draws' : f}
                 </button>
               ))}
            </div>
@@ -194,7 +202,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
             <tr>
               <HeaderCell label="Date" field="date" className="w-36 pl-6" />
               <HeaderCell label="Transaction" field="description" />
-              <HeaderCell label="Type" field="type" className="w-32" />
+              <HeaderCell label="Type" field="type" className="w-36" />
               <HeaderCell label="Category" field="category" className="w-40" />
               <HeaderCell label="Amount" field="amount" className="w-36 text-right" />
               <HeaderCell label="Status" field="status" className="w-36 text-center" />
@@ -221,18 +229,29 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                 </td>
                 <td className="p-2">
                    <div 
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors w-fit ${t.type === 'income' ? 'hover:bg-emerald-500/10' : 'hover:bg-rose-500/10'}`}
-                      onClick={() => handleUpdate(t.id, 'type', t.type === 'income' ? 'expense' : 'income')}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors w-fit hover:bg-slate-800"
+                      onClick={() => {
+                          // Cycle types: income -> expense -> withdrawal -> income
+                          const next = t.type === 'income' ? 'expense' : t.type === 'expense' ? 'withdrawal' : 'income';
+                          handleUpdate(t.id, 'type', next);
+                      }}
                    >
-                     {t.type === 'income' ? (
+                     {t.type === 'income' && (
                         <>
                           <ArrowUpRight size={14} className="text-emerald-400" />
                           <span className="text-xs font-bold text-emerald-400">Income</span>
                         </>
-                     ) : (
+                     )}
+                     {t.type === 'expense' && (
                         <>
                           <ArrowDownLeft size={14} className="text-rose-400" />
                           <span className="text-xs font-bold text-rose-400">Expense</span>
+                        </>
+                     )}
+                     {t.type === 'withdrawal' && (
+                        <>
+                          <ArrowDownCircle size={14} className="text-purple-400" />
+                          <span className="text-xs font-bold text-purple-400">Withdrawal</span>
                         </>
                      )}
                    </div>
@@ -243,20 +262,29 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                       onChange={(e) => handleUpdate(t.id, 'category', e.target.value)}
                       className="w-full bg-transparent text-slate-300 text-xs font-medium border-none outline-none focus:bg-slate-800 rounded px-2 py-2 cursor-pointer"
                    >
-                      {(t.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(c => (
-                        <option key={c} value={c} className="bg-slate-900">{c}</option>
-                      ))}
+                      {t.type === 'income' 
+                        ? INCOME_CATEGORIES.map(c => <option key={c} value={c} className="bg-slate-900">{c}</option>)
+                        : t.type === 'expense'
+                          ? EXPENSE_CATEGORIES.map(c => <option key={c} value={c} className="bg-slate-900">{c}</option>)
+                          : <option value="Owner Draw" className="bg-slate-900">Owner Draw</option>
+                      }
                       <option value="Other" className="bg-slate-900">Other</option>
                    </select>
                 </td>
                 <td className="p-2 text-right">
                   <div className="relative group/amt">
-                     <span className={`absolute left-3 top-2 text-xs transition-colors ${t.type === 'income' ? 'text-emerald-500/50 group-focus-within/amt:text-emerald-500' : 'text-rose-500/50 group-focus-within/amt:text-rose-500'}`}>$</span>
+                     <span className={`absolute left-3 top-2 text-xs transition-colors 
+                        ${t.type === 'income' ? 'text-emerald-500/50 group-focus-within/amt:text-emerald-500' 
+                        : t.type === 'expense' ? 'text-rose-500/50 group-focus-within/amt:text-rose-500'
+                        : 'text-purple-500/50 group-focus-within/amt:text-purple-500'}`}>$</span>
                      <input 
                       type="number" 
                       value={t.amount}
                       onChange={(e) => handleUpdate(t.id, 'amount', Number(e.target.value))}
-                      className={`w-full bg-transparent border-none rounded px-3 py-1.5 pl-6 font-mono text-right outline-none focus:bg-slate-800 transition-all font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}
+                      className={`w-full bg-transparent border-none rounded px-3 py-1.5 pl-6 font-mono text-right outline-none focus:bg-slate-800 transition-all font-bold 
+                         ${t.type === 'income' ? 'text-emerald-400' 
+                         : t.type === 'expense' ? 'text-rose-400'
+                         : 'text-purple-400'}`}
                     />
                   </div>
                 </td>
