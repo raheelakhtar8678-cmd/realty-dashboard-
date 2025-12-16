@@ -4,13 +4,45 @@ import bcrypt from 'bcryptjs';
 export default async function handler(req: any, res: any) {
   const { action } = req.query;
 
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   try {
     if (req.method === 'POST') {
       // REGISTER
       if (action === 'register') {
         const { username, password, securityQuestion, securityAnswer } = req.body;
         
-        // Check if user exists
+        // 1. Ensure Table Exists (Self-Healing DB)
+        try {
+          await sql`
+            CREATE TABLE IF NOT EXISTS users (
+              username VARCHAR(255) PRIMARY KEY,
+              password_hash VARCHAR(255) NOT NULL,
+              security_question TEXT,
+              answer_hash VARCHAR(255),
+              data JSONB,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+          `;
+        } catch (dbError) {
+          console.error("DB Init Error:", dbError);
+          // Continue, as table might exist and error is something else, 
+          // or we let the next query fail with a precise error.
+        }
+        
+        // 2. Check if user exists
         const existing = await sql`SELECT username FROM users WHERE username = ${username}`;
         if (existing.rows.length > 0) {
           return res.status(400).json({ error: 'Username already exists' });
@@ -30,14 +62,24 @@ export default async function handler(req: any, res: any) {
       // LOGIN
       if (action === 'login') {
         const { username, password } = req.body;
-        const result = await sql`SELECT password_hash FROM users WHERE username = ${username}`;
         
-        if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
-        
-        const isValid = await bcrypt.compare(password, result.rows[0].password_hash);
-        if (isValid) return res.status(200).json({ success: true });
-        
-        return res.status(401).json({ error: 'Invalid credentials' });
+        // Protect against table not existing on login too
+        try {
+           const result = await sql`SELECT password_hash FROM users WHERE username = ${username}`;
+           
+           if (result.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
+           
+           const isValid = await bcrypt.compare(password, result.rows[0].password_hash);
+           if (isValid) return res.status(200).json({ success: true });
+           
+           return res.status(401).json({ error: 'Invalid credentials' });
+        } catch (e: any) {
+           // If table doesn't exist, user definitely doesn't exist
+           if (e.code === '42P01') {
+             return res.status(404).json({ error: 'User database not initialized. Please Register first.' });
+           }
+           throw e;
+        }
       }
 
       // RESET PASSWORD
@@ -62,17 +104,22 @@ export default async function handler(req: any, res: any) {
       // GET SECURITY QUESTION
       if (action === 'question') {
         const { username } = req.query;
-        const result = await sql`SELECT security_question FROM users WHERE username = ${username}`;
-        
-        if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-        
-        return res.status(200).json({ question: result.rows[0].security_question });
+        try {
+          const result = await sql`SELECT security_question FROM users WHERE username = ${username}`;
+          
+          if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+          
+          return res.status(200).json({ question: result.rows[0].security_question });
+        } catch (e: any) {
+           if (e.code === '42P01') return res.status(404).json({ error: 'Database empty' });
+           throw e;
+        }
       }
     }
 
     return res.status(400).json({ error: 'Invalid action' });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+  } catch (error: any) {
+    console.error("API Error:", error);
+    return res.status(500).json({ error: `Server Error: ${error.message || 'Unknown'}` });
   }
 }

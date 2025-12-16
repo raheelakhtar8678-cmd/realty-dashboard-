@@ -7,6 +7,8 @@ interface UserData {
   settings: GlobalSettings;
 }
 
+const LOCAL_STORAGE_KEY = 'realty_dashboard_users';
+
 export const StorageService = {
   // --- Auth Methods ---
 
@@ -17,10 +19,26 @@ export const StorageService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, securityQuestion, securityAnswer }),
       });
+      
+      if (res.status === 500) throw new Error("Server Error"); // Trigger fallback
+      
       const data = await res.json();
       return { success: res.ok, message: data.error || data.message };
     } catch (e) {
-      return { success: false, message: 'Network error during registration' };
+      // FALLBACK: Register locally
+      console.warn("Backend unavailable, falling back to local storage.");
+      const users = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+      if (users[username]) {
+        return { success: false, message: 'User already exists (Offline Mode)' };
+      }
+      users[username] = { 
+        password, 
+        securityQuestion, 
+        securityAnswer, 
+        data: { transactions: INITIAL_TRANSACTIONS, settings: INITIAL_SETTINGS } 
+      };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(users));
+      return { success: true, message: 'Registered in Offline Mode' };
     }
   },
 
@@ -31,8 +49,13 @@ export const StorageService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
+      if (res.status === 500) throw new Error("Server Error");
       return res.ok;
     } catch (e) {
+      // FALLBACK: Login locally
+      const users = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+      const user = users[username];
+      if (user && user.password === password) return true;
       return false;
     }
   },
@@ -40,11 +63,14 @@ export const StorageService = {
   async getSecurityQuestion(username: string): Promise<string | null> {
     try {
       const res = await fetch(`/api/auth?action=question&username=${encodeURIComponent(username)}`);
+      if (res.status === 500) throw new Error("Server Error");
       if (!res.ok) return null;
       const data = await res.json();
       return data.question;
     } catch (e) {
-      return null;
+      // FALLBACK
+      const users = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+      return users[username]?.securityQuestion || null;
     }
   },
 
@@ -55,8 +81,17 @@ export const StorageService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, answer, newPassword }),
       });
+      if (res.status === 500) throw new Error("Server Error");
       return res.ok;
     } catch (e) {
+      // FALLBACK
+      const users = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+      const user = users[username];
+      if (user && user.securityAnswer.toLowerCase() === answer.toLowerCase()) {
+        user.password = newPassword;
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(users));
+        return true;
+      }
       return false;
     }
   },
@@ -71,7 +106,12 @@ export const StorageService = {
         body: JSON.stringify({ username, data }),
       });
     } catch (e) {
-      console.error("Failed to save data", e);
+      // FALLBACK
+      const users = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+      if (users[username]) {
+        users[username].data = data;
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(users));
+      }
     }
   },
 
@@ -80,16 +120,19 @@ export const StorageService = {
       const res = await fetch(`/api/data?username=${encodeURIComponent(username)}`);
       if (res.ok) {
         const json = await res.json();
-        // Ensure defaults if fields are missing in new DB records
         return {
           transactions: json.transactions || INITIAL_TRANSACTIONS,
           settings: json.settings || INITIAL_SETTINGS
         };
       }
+      throw new Error("Failed to load");
     } catch (e) {
-      console.error("Failed to load data", e);
+      // FALLBACK
+      const users = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+      if (users[username] && users[username].data) {
+        return users[username].data;
+      }
     }
-    // Fallback to initial data
     return { transactions: INITIAL_TRANSACTIONS, settings: INITIAL_SETTINGS };
   }
 };
