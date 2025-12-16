@@ -19,14 +19,13 @@ export default function App() {
   // App State
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [settings, setSettings] = useState<GlobalSettings>(INITIAL_SETTINGS);
-  const [showAnalytics, setShowAnalytics] = useState(true); // Default to showing dashboard
+  const [showAnalytics, setShowAnalytics] = useState(true);
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   
   // Mobile UI State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // 1. Check for existing session on mount
   useEffect(() => {
     const savedUser = localStorage.getItem(SESSION_KEY);
     if (savedUser) {
@@ -35,7 +34,6 @@ export default function App() {
     setIsAuthChecking(false);
   }, []);
 
-  // 2. Load User Data when currentUser changes
   useEffect(() => {
     async function load() {
       if (currentUser) {
@@ -55,7 +53,6 @@ export default function App() {
     load();
   }, [currentUser]);
 
-  // 3. Auto-save Data
   useEffect(() => {
     if (currentUser && isDataLoaded) {
       const timer = setTimeout(() => {
@@ -65,7 +62,6 @@ export default function App() {
     }
   }, [transactions, settings, currentUser, isDataLoaded]);
 
-  // Derived State
   const metrics = useMemo(() => calculateMetrics(transactions, settings), [transactions, settings]);
   const chartData = useMemo(() => getChartData(transactions, settings), [transactions, settings]);
   const categoryData = useMemo(() => getCategoryData(transactions), [transactions]);
@@ -182,7 +178,7 @@ export default function App() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-900">
         
-        {/* Top Navigation Bar */}
+        {/* Top Navigation */}
         <header className="h-14 border-b border-slate-800 bg-slate-900/95 backdrop-blur flex items-center justify-between px-4 lg:px-6 z-10 shrink-0">
            <div className="flex items-center gap-4">
               <button 
@@ -211,15 +207,15 @@ export default function App() {
         {/* Scrollable Work Area */}
         <main className="flex-1 overflow-y-auto p-0 scroll-smooth flex flex-col">
           
-          {/* Collapsible Analytics Deck */}
+          {/* Analytics Deck */}
           <div className={`
             bg-slate-900 border-b border-slate-800 transition-all duration-500 ease-in-out overflow-hidden
-            ${showAnalytics ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}
+            ${showAnalytics ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
           `}>
              <div className="p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Chart 1: Cash Flow */}
-                <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 shadow-sm col-span-1 lg:col-span-2 relative group">
+                <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 shadow-sm col-span-1 lg:col-span-2 relative group flex flex-col">
                    <div className="flex justify-between items-center mb-4">
                       <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                         <TrendingUp size={16} className="text-emerald-500" /> Performance
@@ -229,7 +225,7 @@ export default function App() {
                         <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-rose-500"></div>EXP</span>
                       </div>
                    </div>
-                   <div className="h-[250px] sm:h-[300px] w-full">
+                   <div className="h-[250px] lg:h-[350px] w-full flex-1">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{top: 10, right: 10, left: 0, bottom: 0}}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.5} />
@@ -257,13 +253,13 @@ export default function App() {
                    </div>
                 </div>
 
-                {/* Chart 2: Projection & Stats */}
+                {/* Chart 2: Forecast */}
                 <div className="flex flex-col gap-4">
-                   <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 shadow-sm flex-1">
+                   <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 shadow-sm flex-1 flex flex-col">
                       <h3 className="text-sm font-semibold text-slate-200 mb-2 flex items-center gap-2">
                          <Activity size={16} className="text-indigo-500" /> Forecast
                       </h3>
-                      <div className="h-[160px] sm:h-[180px] w-full">
+                      <div className="h-[160px] lg:h-auto lg:flex-1 w-full min-h-[160px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={projectionData} margin={{top: 10, right: 0, left: 0, bottom: 0}}>
                              <defs>
@@ -308,18 +304,18 @@ export default function App() {
              </div>
           </div>
           
-          {/* Main Spreadsheet - Takes remaining height */}
+          {/* Main Spreadsheet */}
           <div className="flex-1 min-h-[500px] p-4 lg:p-6 bg-slate-900">
              <div className="h-full flex flex-col">
-                <div className="mb-2 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between">
                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
                      <Table size={18} className="text-emerald-500"/> Master Ledger
                    </h2>
-                   <div className="text-xs text-slate-500 hidden sm:block">
+                   <div className="text-xs text-slate-500 hidden sm:block bg-slate-800 px-2 py-1 rounded border border-slate-700">
                       Real-time sync enabled
                    </div>
                 </div>
-                <div className="flex-1 shadow-2xl rounded-xl overflow-hidden border border-slate-700">
+                <div className="flex-1 shadow-2xl rounded-xl overflow-hidden border border-slate-700 flex flex-col">
                    <PortfolioGrid transactions={transactions} setTransactions={setTransactions} />
                 </div>
              </div>
