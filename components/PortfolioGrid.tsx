@@ -52,21 +52,18 @@ const DateCell = ({ value, onChange }: { value: string, onChange: (val: string) 
   );
 };
 
-const DashboardTickerItem = ({ label, value, subValue, type, className="" }: { label: string, value: string, subValue?: string, type: 'neutral' | 'positive' | 'negative' | 'info', className?: string }) => {
+const TickerItem = ({ label, value, type }: { label: string, value: string, type: 'neutral' | 'positive' | 'negative' | 'info' }) => {
   const colors = {
-    neutral: 'text-slate-200 border-slate-700/50',
-    positive: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5',
-    negative: 'text-rose-400 border-rose-500/20 bg-rose-500/5',
-    info: 'text-indigo-400 border-indigo-500/20 bg-indigo-500/5',
+    neutral: 'text-slate-400',
+    positive: 'text-emerald-400',
+    negative: 'text-rose-400',
+    info: 'text-indigo-400',
   };
 
   return (
-    <div className={`flex flex-col justify-center px-4 py-3 lg:py-4 border-r border-b lg:border-b-0 border-slate-800 last:border-r-0 min-w-[140px] lg:min-w-0 ${type !== 'neutral' ? colors[type] : 'border-slate-800'} ${className}`}>
-      <span className="text-[10px] uppercase tracking-wider font-bold opacity-70 mb-1 whitespace-nowrap">{label}</span>
-      <div className="flex items-baseline gap-2">
-         <span className="text-xl lg:text-2xl font-mono font-bold tracking-tight whitespace-nowrap leading-none">{value}</span>
-         {subValue && <span className="text-[10px] opacity-60 font-medium whitespace-nowrap">{subValue}</span>}
-      </div>
+    <div className="flex flex-col px-4 py-2 border-r border-slate-700/50 last:border-r-0">
+      <span className="text-[10px] uppercase tracking-wider font-bold opacity-70 text-slate-500 mb-0.5 whitespace-nowrap">{label}</span>
+      <span className={`text-lg font-mono font-bold tracking-tight ${colors[type]}`}>{value}</span>
     </div>
   );
 };
@@ -154,41 +151,21 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
   );
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 rounded-xl border border-slate-700 shadow-2xl overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
       
-      {/* 1. Dashboard Header (Ticker) */}
-      <div className="flex flex-col lg:flex-row border-b border-slate-800 bg-slate-950">
+      {/* Ledger Header */}
+      <div className="flex flex-col xl:flex-row border-b border-slate-800 bg-slate-950">
         
-        {/* Stats Grid - Horizontal Scroll on Mobile, Fixed Grid on Desktop */}
-        <div className="flex overflow-x-auto lg:overflow-visible lg:grid lg:grid-cols-4 lg:flex-1 w-full no-scrollbar">
-            <DashboardTickerItem 
-              label="Net Cash Flow" 
-              value={`$${metrics.net.toLocaleString()}`} 
-              type={metrics.net >= 0 ? 'info' : 'negative'}
-              className="lg:border-r border-slate-800"
-            />
-            <DashboardTickerItem 
-              label="Total Revenue" 
-              value={`$${metrics.income.toLocaleString()}`} 
-              type="positive"
-              className="lg:border-r border-slate-800"
-            />
-            <DashboardTickerItem 
-              label="Total Expenses" 
-              value={`$${metrics.expense.toLocaleString()}`} 
-              type="negative"
-              className="lg:border-r border-slate-800"
-            />
-            <DashboardTickerItem 
-              label="Pending Income" 
-              value={`$${metrics.pending.toLocaleString()}`} 
-              subValue={`${transactions.filter(t => t.status === 'pending').length} Deals`}
-              type="neutral"
-            />
+        {/* Simple Stats Ticker */}
+        <div className="flex overflow-x-auto no-scrollbar py-2">
+           <TickerItem label="Net Cash Flow" value={`$${metrics.net.toLocaleString()}`} type={metrics.net >= 0 ? 'info' : 'negative'} />
+           <TickerItem label="Total Revenue" value={`$${metrics.income.toLocaleString()}`} type="positive" />
+           <TickerItem label="Total Expenses" value={`$${metrics.expense.toLocaleString()}`} type="negative" />
+           <TickerItem label="Pending" value={`$${metrics.pending.toLocaleString()}`} type="neutral" />
         </div>
 
-        {/* Controls Toolbar */}
-        <div className="flex items-center justify-between lg:justify-end gap-3 px-4 py-2 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 shrink-0">
+        {/* Controls */}
+        <div className="flex items-center justify-between xl:justify-end gap-3 px-4 py-3 bg-slate-900 xl:bg-transparent border-t xl:border-t-0 xl:border-l border-slate-800 flex-1">
            <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 shrink-0">
               {['all', 'income', 'expense'].map((f) => (
                 <button
@@ -200,6 +177,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                 </button>
               ))}
            </div>
+           
            <button 
             onClick={handleAdd}
             className="flex items-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md transition-all shadow-lg shadow-emerald-900/20 active:translate-y-0.5 whitespace-nowrap"
@@ -209,9 +187,9 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
         </div>
       </div>
       
-      {/* 2. The Data Grid */}
+      {/* Data Grid */}
       <div className="flex-1 overflow-auto custom-scrollbar relative bg-slate-900">
-        <table className="w-full text-left border-collapse min-w-[900px] lg:min-w-full">
+        <table className="w-full text-left border-collapse min-w-[900px] xl:min-w-full">
           <thead>
             <tr>
               <HeaderCell label="Date" field="date" className="w-36 pl-6" />
@@ -313,7 +291,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
         </table>
       </div>
       
-      {/* 3. Footer */}
+      {/* Footer */}
       <div className="bg-slate-950 border-t border-slate-800 p-2 px-4 flex justify-between items-center text-xs text-slate-500 font-mono">
          <span>{sortedTransactions.length} Records</span>
          <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Synced</span>
