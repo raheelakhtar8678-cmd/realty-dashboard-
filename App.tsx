@@ -157,12 +157,20 @@ export default function App() {
             </div>
             <h1 className="text-sm font-bold tracking-tight text-white">Realty<span className="text-emerald-400 font-light">Dash</span></h1>
         </div>
-        <button 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-          className="text-slate-300 p-2 hover:bg-slate-800 rounded-lg transition-colors"
-        >
-          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div className="flex items-center gap-4">
+           {/* Mobile Sync Status */}
+           {!isOnline ? (
+              <CloudOff size={16} className="text-amber-500" />
+            ) : (
+              <Cloud size={16} className="text-emerald-500" />
+            )}
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+              className="text-slate-300 p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+        </div>
       </div>
 
       {/* Mobile Menu Drawer */}
@@ -225,7 +233,7 @@ export default function App() {
            </div>
 
            <div className="flex items-center gap-3">
-              {/* Sync Status Indicator */}
+              {/* Sync Status Indicator (Desktop) */}
               {!isOnline ? (
                 <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-[10px] text-slate-400" title="Data is saved locally. Connect Supabase to sync.">
                    <CloudOff size={12} className="text-amber-500" />
