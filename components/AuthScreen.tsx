@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StorageService } from '../services/storage';
-import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, Home, RefreshCw, Cloud } from 'lucide-react';
+import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, Home, RefreshCw, Cloud, CloudOff } from 'lucide-react';
 
 interface Props {
   onLogin: (email: string) => void;
@@ -178,14 +178,24 @@ export default function AuthScreen({ onLogin }: Props) {
               )}
             </button>
             
-            <div className="mt-4 flex justify-center">
-               <span className="flex items-center gap-1.5 text-[10px] text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-700/50">
-                 {StorageService.isOnline() ? (
-                   <><Cloud size={10} className="text-emerald-500"/> Cloud Sync Ready</>
-                 ) : (
-                   <><Cloud size={10} className="text-amber-500"/> Offline Mode</>
-                 )}
-               </span>
+            <div className="mt-6 border-t border-slate-700/50 pt-4 w-full">
+               <div className="flex justify-center mb-2">
+                 <span className={`flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full border ${StorageService.isOnline() ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+                   {StorageService.isOnline() ? (
+                     <><Cloud size={10} className="text-emerald-500"/> Cloud Sync Active</>
+                   ) : (
+                     <><CloudOff size={10} className="text-amber-500"/> Offline Mode (Local Only)</>
+                   )}
+                 </span>
+               </div>
+               
+               {!StorageService.isOnline() && (
+                 <p className="text-[10px] text-slate-500 text-center mx-auto max-w-[280px] leading-relaxed">
+                   <AlertCircle size={10} className="inline mr-1 text-slate-400"/>
+                   Your data is currently saved to <strong>this browser only</strong>. 
+                   To sync between mobile and desktop, you must configure your Supabase connection keys.
+                 </p>
+               )}
             </div>
           </form>
         </div>
