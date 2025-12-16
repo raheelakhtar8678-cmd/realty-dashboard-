@@ -25,6 +25,7 @@ export interface DashboardMetrics {
   grossIncome: number; // Pre-tax
   pendingCommissions: number; // Post-tax value
   projectedNextYearExpense: number; // Inflation adjusted
+  projectedScenarioNet: number; // Annualized, Tax & Inflation adjusted
 }
 
 export interface GlobalSettings {

@@ -20,13 +20,31 @@ export const calculateMetrics = (transactions: Transaction[], settings: GlobalSe
   const taxMultiplier = 1 - (settings.taxRate / 100);
   const inflationMultiplier = 1 + (settings.inflationRate / 100);
 
+  // Annualization Logic (Simple: Average monthly * 12)
+  // Find date span
+  const dates = transactions.map(t => new Date(t.date).getTime());
+  let monthsSpan = 1;
+  if (dates.length > 0) {
+     const min = Math.min(...dates);
+     const max = Math.max(...dates);
+     const diffDays = (max - min) / (1000 * 60 * 60 * 24);
+     monthsSpan = Math.max(1, Math.ceil(diffDays / 30));
+  }
+  
+  const annualizedIncome = (raw.totalIncome / monthsSpan) * 12;
+  const annualizedExpense = (raw.totalExpense / monthsSpan) * 12;
+  
+  // Scenario Net: (Proj Income - (Proj Expense * Inflation)) * Tax
+  const scenarioNet = (annualizedIncome - (annualizedExpense * inflationMultiplier)) * taxMultiplier;
+
   return {
     totalIncome: raw.totalIncome,
     totalExpense: raw.totalExpense,
     grossIncome: raw.totalIncome - raw.totalExpense,
     netIncome: (raw.totalIncome - raw.totalExpense) * taxMultiplier,
     pendingCommissions: raw.pendingCommissions * taxMultiplier,
-    projectedNextYearExpense: raw.totalExpense * inflationMultiplier
+    projectedNextYearExpense: raw.totalExpense * inflationMultiplier,
+    projectedScenarioNet: scenarioNet
   };
 };
 
@@ -73,50 +91,51 @@ export const getCategoryData = (transactions: Transaction[]) => {
     .sort((a, b) => b.value - a.value);
 };
 
-export const getIncomeProjection = (transactions: Transaction[]) => {
+export const getIncomeProjection = (transactions: Transaction[], settings?: GlobalSettings) => {
   const completedIncome = transactions.filter(t => t.type === 'income' && t.status === 'completed');
-  
-  let avgMonthly = 0;
-  if (completedIncome.length > 0) {
-    const dates = completedIncome.map(t => new Date(t.date).getTime());
-    const minDate = new Date(Math.min(...dates));
-    const maxDate = new Date(Math.max(...dates));
-    
-    // Calculate approximate months span
-    const diffTime = Math.abs(maxDate.getTime() - minDate.getTime());
-    // Convert ms to months (approx 30.44 days)
-    const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30.44)); 
-    // Ensure at least 1 month division to avoid infinity/NaN
-    const divisor = Math.max(diffMonths, 1);
-    
-    const totalCompleted = completedIncome.reduce((sum, t) => sum + t.amount, 0);
-    avgMonthly = totalCompleted / divisor;
-  }
+  const expenses = transactions.filter(t => t.type === 'expense');
+
+  // Calculate Averages
+  const calculateMonthlyAverage = (items: Transaction[]) => {
+      if (items.length === 0) return 0;
+      const dates = items.map(t => new Date(t.date).getTime());
+      const minDate = new Date(Math.min(...dates));
+      const maxDate = new Date(Math.max(...dates));
+      const diffMonths = Math.max(1, Math.ceil(Math.abs(maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+      return items.reduce((sum, t) => sum + t.amount, 0) / diffMonths;
+  };
+
+  const avgIncome = calculateMonthlyAverage(completedIncome);
+  const avgExpense = calculateMonthlyAverage(expenses);
 
   const today = new Date();
   const projection = [];
   
+  // Inflation Logic
+  const inflationRate = settings?.inflationRate || 0;
+  const monthlyInflation = inflationRate / 100 / 12;
+
   for (let i = 0; i < 12; i++) {
     const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const label = d.toLocaleString('default', { month: 'short', year: '2-digit' });
     
-    // Sum pending transactions for this specific future month
     const pending = transactions
       .filter(t => t.type === 'income' && t.status === 'pending' && t.date.startsWith(monthKey))
       .reduce((sum, t) => sum + t.amount, 0);
       
-    // Forecast logic:
-    // If we have concrete pending deals, use them if they exceed the average.
-    // If no deals, assume the "Average Run Rate".
-    // This creates a "Baseline + Upside" view.
-    const forecast = Math.max(pending, avgMonthly);
+    // Forecast Income: Baseline or Pending if higher
+    const forecastIncome = Math.max(pending, avgIncome);
     
+    // Forecast Expense: Base * (1 + inflation)^months
+    const projectedExpense = avgExpense * Math.pow(1 + monthlyInflation, i);
+
     projection.push({
       name: label,
-      forecast: Math.round(forecast),
+      forecast: Math.round(forecastIncome),
+      projectedExpense: Math.round(projectedExpense),
       pending: pending,
-      baseline: Math.round(avgMonthly)
+      netPotential: Math.round(forecastIncome - projectedExpense)
     });
   }
   return projection;

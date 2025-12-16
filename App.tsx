@@ -70,7 +70,7 @@ export default function App() {
   const chartData = useMemo(() => getChartData(transactions, settings), [transactions, settings]);
   const categoryData = useMemo(() => getCategoryData(transactions), [transactions]);
   const timeSummaries = useMemo(() => getTimeSummaries(transactions, settings), [transactions, settings]);
-  const projectionData = useMemo(() => getIncomeProjection(transactions), [transactions]);
+  const projectionData = useMemo(() => getIncomeProjection(transactions, settings), [transactions, settings]);
 
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 
@@ -223,39 +223,39 @@ export default function App() {
           {activeTab === 'overview' && (
              <div className="p-4 lg:p-8 max-w-7xl mx-auto w-full space-y-6 animate-in fade-in zoom-in-95 duration-300">
                 
-                {/* Metrics Grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                   <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden group">
+                {/* Metrics Grid - Optimized for Mobile */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+                   <div className="bg-slate-800 p-3 lg:p-5 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
                       <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <TrendingUp size={48} className="text-emerald-500"/>
+                        <TrendingUp size={40} className="text-emerald-500"/>
                       </div>
-                      <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Gross Revenue</div>
-                      <div className="text-2xl font-bold text-white font-mono">${metrics.totalIncome.toLocaleString()}</div>
-                      <div className="text-xs text-emerald-400 mt-2 font-medium">+12% vs last month</div>
+                      <div className="text-[10px] lg:text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Gross Revenue</div>
+                      <div className="text-xl lg:text-3xl font-bold text-white font-mono tracking-tight">${metrics.totalIncome.toLocaleString()}</div>
+                      <div className="text-[10px] lg:text-xs text-emerald-400 mt-2 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded w-fit">+12% vs last month</div>
                    </div>
-                   <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden group">
+                   <div className="bg-slate-800 p-3 lg:p-5 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-rose-500/30 transition-colors">
                       <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <TrendingDown size={48} className="text-rose-500"/>
+                        <TrendingDown size={40} className="text-rose-500"/>
                       </div>
-                      <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Expenses</div>
-                      <div className="text-2xl font-bold text-white font-mono">${metrics.totalExpense.toLocaleString()}</div>
-                      <div className="text-xs text-rose-400 mt-2 font-medium">High marketing spend</div>
+                      <div className="text-[10px] lg:text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Expenses</div>
+                      <div className="text-xl lg:text-3xl font-bold text-white font-mono tracking-tight">${metrics.totalExpense.toLocaleString()}</div>
+                      <div className="text-[10px] lg:text-xs text-rose-400 mt-2 font-medium bg-rose-500/10 px-1.5 py-0.5 rounded w-fit">High marketing spend</div>
                    </div>
-                   <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden group">
+                   <div className="bg-slate-800 p-3 lg:p-5 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-indigo-500/30 transition-colors">
                       <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Wallet size={48} className="text-indigo-500"/>
+                        <Wallet size={40} className="text-indigo-500"/>
                       </div>
-                      <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Net Income (Est)</div>
-                      <div className="text-2xl font-bold text-white font-mono">${metrics.netIncome.toLocaleString()}</div>
-                      <div className="text-xs text-indigo-400 mt-2 font-medium">Post-tax estimate</div>
+                      <div className="text-[10px] lg:text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Net Income (Est)</div>
+                      <div className="text-xl lg:text-3xl font-bold text-white font-mono tracking-tight">${metrics.netIncome.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                      <div className="text-[10px] lg:text-xs text-indigo-400 mt-2 font-medium bg-indigo-500/10 px-1.5 py-0.5 rounded w-fit">Post-tax estimate</div>
                    </div>
-                   <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden group">
+                   <div className="bg-slate-800 p-3 lg:p-5 rounded-xl border border-slate-700 shadow-lg relative overflow-hidden group hover:border-amber-500/30 transition-colors">
                       <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Building size={48} className="text-amber-500"/>
+                        <Building size={40} className="text-amber-500"/>
                       </div>
-                      <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Pipeline</div>
-                      <div className="text-2xl font-bold text-white font-mono">${metrics.pendingCommissions.toLocaleString()}</div>
-                      <div className="text-xs text-amber-400 mt-2 font-medium">3 Deals Pending</div>
+                      <div className="text-[10px] lg:text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">Pipeline</div>
+                      <div className="text-xl lg:text-3xl font-bold text-white font-mono tracking-tight">${metrics.pendingCommissions.toLocaleString()}</div>
+                      <div className="text-[10px] lg:text-xs text-amber-400 mt-2 font-medium bg-amber-500/10 px-1.5 py-0.5 rounded w-fit">3 Deals Pending</div>
                    </div>
                 </div>
 
@@ -265,15 +265,15 @@ export default function App() {
                        <h3 className="text-base font-bold text-white mb-6 flex items-center gap-2">
                          <Activity size={18} className="text-emerald-500"/> Cash Flow Performance
                        </h3>
-                       <div className="h-[300px] w-full">
+                       <div className="h-[250px] lg:h-[300px] w-full">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.5} />
-                              <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                              <YAxis stroke="#94a3b8" tick={{fontSize: 12}} tickFormatter={(v) => `$${v/1000}k`} tickLine={false} axisLine={false} />
+                              <XAxis dataKey="date" stroke="#94a3b8" tick={{fontSize: 10}} tickLine={false} axisLine={false} />
+                              <YAxis stroke="#94a3b8" tick={{fontSize: 10}} tickFormatter={(v) => `$${v/1000}k`} tickLine={false} axisLine={false} />
                               <Tooltip content={<CashFlowTooltip />} cursor={{fill: '#1e293b', opacity: 0.5}} />
-                              <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={60} />
-                              <Bar dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={60} />
+                              <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                              <Bar dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={50} />
                             </BarChart>
                           </ResponsiveContainer>
                        </div>
@@ -282,7 +282,9 @@ export default function App() {
                     {/* Forecast Area Chart */}
                     <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-sm flex flex-col">
                        <h3 className="text-base font-bold text-white mb-6 flex items-center gap-2">
-                         <TrendingUp size={18} className="text-indigo-500"/> Income Forecast
+                         <TrendingUp size={18} className="text-indigo-500"/> 
+                         <span className="flex-1">Scenario Forecast</span>
+                         {settings.inflationRate > 3 && <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">High Infl.</span>}
                        </h3>
                        <div className="flex-1 w-full min-h-[200px]">
                           <ResponsiveContainer width="100%" height="100%">
@@ -297,43 +299,83 @@ export default function App() {
                                <XAxis dataKey="name" hide />
                                <YAxis hide domain={['dataMin', 'dataMax']} />
                                <Tooltip contentStyle={{background:'#0f172a', border:'1px solid #334155', borderRadius:'8px'}} itemStyle={{color:'#e2e8f0'}}/>
-                               <Area type="monotone" dataKey="forecast" stroke="#6366f1" strokeWidth={3} fill="url(#colorForecast)" />
+                               <Area type="monotone" dataKey="forecast" name="Projected Income" stroke="#6366f1" strokeWidth={3} fill="url(#colorForecast)" />
+                               <Area type="monotone" dataKey="projectedExpense" name="Proj. Expense (Inflation)" stroke="#f43f5e" strokeWidth={2} fill="transparent" strokeDasharray="4 4" />
                             </AreaChart>
                           </ResponsiveContainer>
                        </div>
                        <div className="mt-4 pt-4 border-t border-slate-700">
                           <div className="flex justify-between items-center text-sm">
-                             <span className="text-slate-400">Projected Run Rate</span>
-                             <span className="text-white font-mono font-bold">${(metrics.totalIncome / (transactions.length || 1) * 12).toLocaleString(undefined, {maximumFractionDigits:0})}</span>
+                             <span className="text-slate-400 text-xs">Projected Annual Net (Scenario)</span>
+                             <div className="text-right">
+                                <div className="text-white font-mono font-bold text-lg">${Math.round(metrics.projectedScenarioNet).toLocaleString()}</div>
+                                <div className="text-[10px] text-slate-500">Adj. for Inflation ({settings.inflationRate}%) & Tax ({settings.taxRate}%)</div>
+                             </div>
                           </div>
                        </div>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                   {/* Category Breakdown */}
-                   <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-                      <h3 className="text-base font-bold text-white mb-6 flex items-center gap-2">
+                   {/* Category Breakdown (Detailed) */}
+                   <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 flex flex-col">
+                      <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
                         <PieIcon size={18} className="text-amber-500"/> Expense Allocation
                       </h3>
-                      <div className="h-[250px] w-full flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
-                           <PieChart>
-                              <Pie
-                                data={categoryData}
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                              >
-                                {categoryData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip contentStyle={{background:'#0f172a', border:'1px solid #334155', borderRadius:'8px'}} itemStyle={{color:'#e2e8f0'}} />
-                              <Legend />
-                           </PieChart>
-                        </ResponsiveContainer>
+                      <div className="flex flex-col sm:flex-row items-center gap-6">
+                        <div className="h-[180px] w-[180px] flex-shrink-0 relative">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                  <Pie
+                                    data={categoryData}
+                                    innerRadius={50}
+                                    outerRadius={70}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                    stroke="none"
+                                  >
+                                    {categoryData.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip 
+                                    contentStyle={{background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', fontSize:'12px'}} 
+                                    itemStyle={{color:'#e2e8f0'}} 
+                                    formatter={(value: number) => `$${value.toLocaleString()}`}
+                                  />
+                              </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                               <div className="text-center">
+                                  <div className="text-xs text-slate-500">Total</div>
+                                  <div className="text-sm font-bold text-white">${metrics.totalExpense.toLocaleString()}</div>
+                               </div>
+                            </div>
+                        </div>
+                        
+                        {/* Detailed List */}
+                        <div className="flex-1 w-full space-y-3">
+                           {categoryData.slice(0, 4).map((cat, index) => {
+                             const percent = (cat.value / metrics.totalExpense) * 100;
+                             return (
+                               <div key={cat.name} className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-2">
+                                     <div className="w-2 h-2 rounded-full" style={{ background: COLORS[index % COLORS.length] }}></div>
+                                     <span className="text-slate-300 font-medium">{cat.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                     <span className="text-slate-500 w-8 text-right">{Math.round(percent)}%</span>
+                                     <span className="text-white font-mono w-16 text-right">${cat.value.toLocaleString()}</span>
+                                  </div>
+                               </div>
+                             );
+                           })}
+                           {categoryData.length > 4 && (
+                             <div className="text-center pt-2 text-[10px] text-slate-500 italic">
+                               + {categoryData.length - 4} other categories
+                             </div>
+                           )}
+                        </div>
                       </div>
                    </div>
                    
