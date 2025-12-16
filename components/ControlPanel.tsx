@@ -12,10 +12,11 @@ interface Props {
   onSettingsChange: (newSettings: GlobalSettings) => void;
 }
 
-const SummaryCard = ({ title, summary }: { title: string, summary: DateSummary }) => (
+const SummaryCard = ({ title, summary, target }: { title: string, summary: DateSummary, target?: number }) => (
   <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 transition-all hover:border-slate-500">
-    <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-3 font-semibold flex items-center gap-2">
-      <Calendar size={12} /> {title}
+    <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-3 font-semibold flex items-center justify-between">
+      <span className="flex items-center gap-2"><Calendar size={12} /> {title}</span>
+      {target && <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Target Active</span>}
     </h4>
     <div className="space-y-2">
        <div className="flex justify-between items-center text-sm">
@@ -39,6 +40,27 @@ const SummaryCard = ({ title, summary }: { title: string, summary: DateSummary }
            {summary.net >= 0 ? '+' : ''}${summary.net.toLocaleString()}
          </span>
        </div>
+
+       {/* Monthly Target Integration */}
+       {target && (
+         <div className="pt-3 mt-2 border-t border-slate-600/50">
+            <div className="flex justify-between items-end mb-1.5">
+               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                 <Target size={10} /> Monthly Goal
+               </span>
+               <span className="text-[10px] text-white font-mono">${target.toLocaleString()}</span>
+            </div>
+            <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-700">
+               <div 
+                 className="bg-emerald-500 h-full rounded-full transition-all duration-1000" 
+                 style={{ width: `${Math.min((summary.income / target) * 100, 100)}%` }}
+               ></div>
+            </div>
+            <div className="text-right mt-1">
+               <span className="text-[10px] text-emerald-400 font-medium">{Math.round((summary.income / target) * 100)}% Achieved</span>
+            </div>
+         </div>
+       )}
     </div>
   </div>
 );
@@ -107,9 +129,7 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
             
             <SummaryCard title="Today" summary={summaries.day} />
             <SummaryCard title="This Week" summary={summaries.week} />
-            <SummaryCard title="This Month" summary={summaries.month} />
-
-            {/* Monthly Target removed from here */}
+            <SummaryCard title="This Month" summary={summaries.month} target={20000} />
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
