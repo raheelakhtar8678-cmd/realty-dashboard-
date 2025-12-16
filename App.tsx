@@ -229,15 +229,29 @@ export default function App() {
                         <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-rose-500"></div>EXP</span>
                       </div>
                    </div>
-                   <div className="h-[200px] w-full">
+                   <div className="h-[250px] sm:h-[300px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} margin={{top: 5, right: 0, left: -20, bottom: 0}}>
+                        <BarChart data={chartData} margin={{top: 10, right: 10, left: 0, bottom: 0}}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.5} />
-                          <XAxis dataKey="date" stroke="#64748b" tick={{fontSize: 10}} tickLine={false} axisLine={false} />
-                          <YAxis stroke="#64748b" tick={{fontSize: 10}} tickFormatter={(v) => `${v/1000}k`} tickLine={false} axisLine={false} />
+                          <XAxis 
+                             dataKey="date" 
+                             stroke="#64748b" 
+                             tick={{fontSize: 10}} 
+                             tickLine={false} 
+                             axisLine={false} 
+                             tickMargin={10}
+                          />
+                          <YAxis 
+                             stroke="#64748b" 
+                             tick={{fontSize: 10}} 
+                             tickFormatter={(v) => `${v/1000}k`} 
+                             tickLine={false} 
+                             axisLine={false}
+                             width={35}
+                          />
                           <Tooltip content={<CashFlowTooltip />} cursor={{fill: '#1e293b', opacity: 0.5}} />
-                          <Bar dataKey="income" fill="#10b981" radius={[2, 2, 0, 0]} />
-                          <Bar dataKey="expense" fill="#f43f5e" radius={[2, 2, 0, 0]} />
+                          <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                          <Bar dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={50} />
                         </BarChart>
                       </ResponsiveContainer>
                    </div>
@@ -249,9 +263,9 @@ export default function App() {
                       <h3 className="text-sm font-semibold text-slate-200 mb-2 flex items-center gap-2">
                          <Activity size={16} className="text-indigo-500" /> Forecast
                       </h3>
-                      <div className="h-[120px] w-full">
+                      <div className="h-[160px] sm:h-[180px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={projectionData} margin={{top: 5, right: 0, left: -20, bottom: 0}}>
+                          <AreaChart data={projectionData} margin={{top: 10, right: 0, left: 0, bottom: 0}}>
                              <defs>
                                 <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
@@ -266,7 +280,7 @@ export default function App() {
                                 itemStyle={{color:'#e2e8f0'}}
                                 labelStyle={{color:'#94a3b8'}}
                              />
-                             <Area type="monotone" dataKey="forecast" stroke="#6366f1" strokeWidth={2} fill="url(#colorForecast)" />
+                             <Area type="monotone" dataKey="forecast" stroke="#6366f1" strokeWidth={3} fill="url(#colorForecast)" />
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>
