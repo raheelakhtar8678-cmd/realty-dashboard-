@@ -63,7 +63,7 @@ const TickerItem = ({ label, value, type }: { label: string, value: string, type
   };
 
   return (
-    <div className="flex flex-col px-4 py-2 border-r border-slate-700/50 last:border-r-0">
+    <div className="flex flex-col px-4 py-2 border-r border-slate-700/50 last:border-r-0 min-w-max">
       <span className="text-[10px] uppercase tracking-wider font-bold opacity-70 text-slate-500 mb-0.5 whitespace-nowrap">{label}</span>
       <span className={`text-lg font-mono font-bold tracking-tight ${colors[type]}`}>{value}</span>
     </div>
@@ -160,12 +160,21 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
   );
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-900 overflow-hidden relative">
       
+      {/* Mobile Floating Action Button (FAB) */}
+      <button 
+        onClick={handleAdd}
+        className="md:hidden absolute bottom-6 right-6 z-50 w-14 h-14 bg-emerald-600 hover:bg-emerald-500 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex items-center justify-center text-white transition-transform active:scale-95 border border-emerald-400/20"
+        title="New Entry"
+      >
+        <Plus size={28} />
+      </button>
+
       {/* Ledger Header */}
       <div className="flex flex-col xl:flex-row border-b border-slate-800 bg-slate-950">
         
-        {/* Simple Stats Ticker */}
+        {/* Simple Stats Ticker - Collapsible on small mobile if needed, but scrollable for now */}
         <div className="flex overflow-x-auto no-scrollbar py-2 border-b xl:border-b-0 border-slate-800">
            <TickerItem label="Net Cash Flow" value={`$${metrics.cashFlow.toLocaleString()}`} type={metrics.cashFlow >= 0 ? 'info' : 'negative'} />
            <TickerItem label="Net Profit" value={`$${metrics.profit.toLocaleString()}`} type={metrics.profit >= 0 ? 'positive' : 'negative'} />
@@ -192,9 +201,10 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
               </div>
            </div>
            
+           {/* Desktop New Entry Button (Hidden on Mobile, replaced by FAB) */}
            <button 
             onClick={handleAdd}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md transition-all shadow-lg shadow-emerald-900/20 active:translate-y-0.5 whitespace-nowrap"
+            className="hidden md:flex w-full sm:w-auto items-center justify-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md transition-all shadow-lg shadow-emerald-900/20 active:translate-y-0.5 whitespace-nowrap"
           >
             <Plus size={14} /> NEW ENTRY
           </button>
@@ -202,7 +212,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
       </div>
       
       {/* Data Grid */}
-      <div className="flex-1 overflow-auto custom-scrollbar relative bg-slate-900">
+      <div className="flex-1 overflow-auto custom-scrollbar relative bg-slate-900 pb-20 md:pb-0">
         <table className="w-full text-left border-collapse min-w-[900px] xl:min-w-full">
           <thead>
             <tr>
