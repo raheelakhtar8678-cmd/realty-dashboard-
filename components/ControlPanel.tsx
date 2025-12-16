@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Calendar, TrendingUp, Settings, TrendingDown, Percent, DollarSign, Calculator, Info, PiggyBank } from 'lucide-react';
+import { Target, Calendar, TrendingUp, Settings, TrendingDown, Percent, DollarSign, Calculator, Info, PiggyBank, Briefcase } from 'lucide-react';
 import { DateSummary, GlobalSettings } from '../types';
 
 interface Props {
@@ -106,13 +106,32 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
 
   // Simple projection based on current month * 12
   const projectedAnnualNet = summaries.month.net * 12;
-  const projectedWealth10Y = Array.from({length: 10}).reduce<number>((acc) => {
-    // Basic compound interest calc using settings
-    const afterTax = (acc + projectedAnnualNet) * (1 - settings.taxRate/100);
-    const growth = afterTax * (1 + settings.reinvestmentRate/100 * 0.07); // Assume 7% market return on reinvested portion
-    const inflationAdj = growth / (1 + settings.inflationRate/100);
-    return inflationAdj;
-  }, 0);
+  const currentNet = Math.max(projectedAnnualNet, 0); // avoid compounding debt
+  
+  // 10 Year Wealth Calculation
+  // We assume monthly contribution = current month net
+  // This calculates future value of a series (FV) + future value of current savings (not tracked here, assuming 0 start for simplicity or just flow)
+  const annualContribution = currentNet;
+  const r = settings.reinvestmentRate / 100; // Simplified return rate of portfolio (e.g., 7% market) * reinvestment %
+  const marketReturn = 0.08; // Fixed assumption for "market"
+  const effectiveRate = marketReturn; 
+  
+  // FV of annuity formula: P * (((1+r)^n - 1) / r)
+  // But adjusted for tax and inflation in the UI
+  const years = 10;
+  // Let's do a simple accumulation loop
+  let totalWealth = 0;
+  for(let i=1; i<=years; i++) {
+     const yearlyGrowth = totalWealth * effectiveRate;
+     const yearlyContribution = annualContribution; // Assuming constant income
+     const taxHit = (yearlyGrowth + yearlyContribution) * (settings.taxRate / 100);
+     totalWealth = totalWealth + yearlyGrowth + yearlyContribution - taxHit;
+     // Apply annual withdrawal
+     totalWealth -= settings.annualWithdrawal;
+  }
+  
+  // Adjust final for inflation purchasing power
+  const inflationAdjWealth = totalWealth / Math.pow(1 + (settings.inflationRate/100), years);
 
   return (
     <div className="bg-slate-800 border-l border-slate-700 h-full flex flex-col text-slate-200">
@@ -156,7 +175,21 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
         ) : (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             
-            {/* Goal Setting (New) */}
+            {/* The "Missing One" - Scenario Result */}
+            <div className="bg-gradient-to-br from-indigo-900/50 to-slate-900 p-4 rounded-xl border border-indigo-500/30 shadow-lg">
+                <div className="flex items-center gap-2 mb-3 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                   <Briefcase size={14} /> Future Wealth (10Y)
+                </div>
+                <div className="text-2xl font-bold text-white font-mono tracking-tight">
+                   ${Math.max(0, Math.round(inflationAdjWealth)).toLocaleString()}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1 flex justify-between">
+                   <span>Purchasing Power (Adj. Inflation)</span>
+                   <span className="text-indigo-400">Est.</span>
+                </div>
+            </div>
+
+            {/* Goal Setting */}
             <div className="space-y-3 pb-4 border-b border-slate-700">
                 <div className="flex justify-between items-center">
                     <label className="text-sm font-medium text-white flex items-center">

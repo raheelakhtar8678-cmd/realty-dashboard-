@@ -161,33 +161,28 @@ export const getIncomeProjection = (transactions: Transaction[], settings?: Glob
 
 export const getTimeSummaries = (transactions: Transaction[], settings: GlobalSettings) => {
   const now = new Date();
+  // We use string comparison for dates to avoid timezone shifting issues with 'YYYY-MM-DD'
+  const todayStr = now.toISOString().split('T')[0];
+  const currentMonthKey = now.toISOString().slice(0, 7); // YYYY-MM
   
   // Helpers
-  const isSameDay = (d1: Date, d2: Date) => 
-    d1.getFullYear() === d2.getFullYear() && 
-    d1.getMonth() === d2.getMonth() && 
-    d1.getDate() === d2.getDate();
-    
-  const getWeek = (d: Date) => {
-    const onejan = new Date(d.getFullYear(), 0, 1);
-    const millis = d.getTime() - onejan.getTime();
-    return Math.ceil((((millis / 86400000) + onejan.getDay() + 1) / 7));
+  const getWeekNumber = (d: Date) => {
+      d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+      var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+      var weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+      return weekNo;
   };
+  const currentWeek = getWeekNumber(now);
+  const currentYear = now.getFullYear();
 
-  const isSameWeek = (d1: Date, d2: Date) => 
-    d1.getFullYear() === d2.getFullYear() && getWeek(d1) === getWeek(d2);
-
-  const isSameMonth = (d1: Date, d2: Date) => 
-    d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
-
-  const summarize = (filterFn: (d: Date) => boolean): DateSummary => {
-    const filtered = transactions.filter(t => filterFn(new Date(t.date)));
+  const summarize = (filterFn: (t: Transaction) => boolean): DateSummary => {
+    const filtered = transactions.filter(filterFn);
     const income = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const expense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const withdrawal = filtered.filter(t => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
     const saving = filtered.filter(t => t.type === 'saving').reduce((s, t) => s + t.amount, 0);
     
-    // Summary Net usually refers to Cash Flow in a quick view
     return {
       period: '',
       income,
@@ -199,8 +194,20 @@ export const getTimeSummaries = (transactions: Transaction[], settings: GlobalSe
   };
 
   return {
-    day: { ...summarize(d => isSameDay(d, now)), period: 'Today' },
-    week: { ...summarize(d => isSameWeek(d, now)), period: 'This Week' },
-    month: { ...summarize(d => isSameMonth(d, now)), period: 'This Month' }
+    day: { 
+      ...summarize(t => t.date === todayStr), 
+      period: 'Today' 
+    },
+    week: { 
+      ...summarize(t => {
+         const d = new Date(t.date);
+         return getWeekNumber(d) === currentWeek && d.getFullYear() === currentYear;
+      }), 
+      period: 'This Week' 
+    },
+    month: { 
+      ...summarize(t => t.date.startsWith(currentMonthKey)), 
+      period: 'This Month' 
+    }
   };
 };
