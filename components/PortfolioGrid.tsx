@@ -166,7 +166,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
       <div className="flex flex-col xl:flex-row border-b border-slate-800 bg-slate-950">
         
         {/* Simple Stats Ticker */}
-        <div className="flex overflow-x-auto no-scrollbar py-2">
+        <div className="flex overflow-x-auto no-scrollbar py-2 border-b xl:border-b-0 border-slate-800">
            <TickerItem label="Net Cash Flow" value={`$${metrics.cashFlow.toLocaleString()}`} type={metrics.cashFlow >= 0 ? 'info' : 'negative'} />
            <TickerItem label="Net Profit" value={`$${metrics.profit.toLocaleString()}`} type={metrics.profit >= 0 ? 'positive' : 'negative'} />
            {metrics.saving > 0 && <TickerItem label="Saved" value={`$${metrics.saving.toLocaleString()}`} type="cyan" />}
@@ -176,23 +176,25 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
            <TickerItem label="Pending" value={`$${metrics.pending.toLocaleString()}`} type="neutral" />
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center justify-between xl:justify-end gap-3 px-4 py-3 bg-slate-900 xl:bg-transparent border-t xl:border-t-0 xl:border-l border-slate-800 flex-1">
-           <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 shrink-0">
-              {['all', 'income', 'expense', 'withdrawal', 'saving'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilterType(f as any)}
-                  className={`px-3 py-1.5 text-[10px] uppercase font-bold rounded-md transition-all ${filterType === f ? 'bg-slate-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}
-                >
-                  {f === 'withdrawal' ? 'Draws' : f}
-                </button>
-              ))}
+        {/* Controls - Optimized for Mobile */}
+        <div className="flex flex-col sm:flex-row items-center justify-between xl:justify-end gap-3 px-4 py-3 bg-slate-900 xl:bg-transparent border-l-0 xl:border-l border-slate-800 flex-1">
+           <div className="w-full sm:w-auto overflow-x-auto no-scrollbar flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 shrink-0">
+              <div className="flex min-w-max">
+                {['all', 'income', 'expense', 'withdrawal', 'saving'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilterType(f as any)}
+                    className={`px-3 py-1.5 text-[10px] uppercase font-bold rounded-md transition-all ${filterType === f ? 'bg-slate-600 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    {f === 'withdrawal' ? 'Draws' : f}
+                  </button>
+                ))}
+              </div>
            </div>
            
            <button 
             onClick={handleAdd}
-            className="flex items-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md transition-all shadow-lg shadow-emerald-900/20 active:translate-y-0.5 whitespace-nowrap"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-md transition-all shadow-lg shadow-emerald-900/20 active:translate-y-0.5 whitespace-nowrap"
           >
             <Plus size={14} /> NEW ENTRY
           </button>
