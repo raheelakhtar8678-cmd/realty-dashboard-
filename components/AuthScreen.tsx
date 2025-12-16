@@ -184,8 +184,6 @@ export default function AuthScreen({ onLogin }: Props) {
 
     try {
       if (mode === 'login') {
-        // Artificial delay
-        await new Promise(resolve => setTimeout(resolve, 600));
         const isValid = await StorageService.login(formData.username, formData.password);
         if (isValid) {
           onLogin(formData.username);
@@ -227,8 +225,7 @@ export default function AuthScreen({ onLogin }: Props) {
       else if (mode === 'recover') {
         if (recoveryStep === 1) {
            // Step 1: Find User
-           await new Promise(resolve => setTimeout(resolve, 400));
-           const question = StorageService.getSecurityQuestion(formData.username);
+           const question = await StorageService.getSecurityQuestion(formData.username);
            if (question) {
              setRetrievedQuestion(question);
              setRecoveryStep(2);
@@ -260,7 +257,7 @@ export default function AuthScreen({ onLogin }: Props) {
         }
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -419,7 +416,6 @@ export default function AuthScreen({ onLogin }: Props) {
               </div>
             )}
             
-            {/* CAPTCHA: Hide for Recover Step 1 (UX choice: verify user exists first) OR Keep it? Let's keep it for Step 1 too to prevent username enumeration bots */}
             {(mode !== 'recover' || recoveryStep === 2) && (
               <div className="pt-2">
                 <Captcha onValidate={setIsCaptchaValid} />
@@ -478,7 +474,7 @@ export default function AuthScreen({ onLogin }: Props) {
       </div>
       
       <div className="fixed bottom-4 text-center w-full text-[10px] text-slate-600 flex flex-col items-center gap-1">
-        <p className="flex items-center gap-1"><Lock size={10} /> 256-bit Encryption Enabled (Client-Side)</p>
+        <p className="flex items-center gap-1"><Lock size={10} /> 256-bit Encryption Enabled (Server-Side)</p>
         <p>Identity Verification via Security Challenge</p>
       </div>
     </div>

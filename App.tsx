@@ -7,7 +7,7 @@ import { StorageService } from './services/storage';
 import ControlPanel from './components/ControlPanel';
 import PortfolioGrid from './components/PortfolioGrid';
 import AuthScreen from './components/AuthScreen';
-import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon } from 'lucide-react';
+import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
 
 export default function App() {
   // Auth State
@@ -17,22 +17,36 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [settings, setSettings] = useState<GlobalSettings>(INITIAL_SETTINGS);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger'>('dashboard');
+  const [isDataLoading, setIsDataLoading] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  // Load User Data on Login
+  // Load User Data on Login (Async)
   useEffect(() => {
-    if (currentUser) {
-      const data = StorageService.loadData(currentUser);
-      setTransactions(data.transactions);
-      setSettings(data.settings);
-      setIsDataLoaded(true);
+    async function load() {
+      if (currentUser) {
+        setIsDataLoading(true);
+        try {
+          const data = await StorageService.loadData(currentUser);
+          setTransactions(data.transactions);
+          setSettings(data.settings);
+          setIsDataLoaded(true);
+        } catch (e) {
+          console.error("Failed to load user data");
+        } finally {
+          setIsDataLoading(false);
+        }
+      }
     }
+    load();
   }, [currentUser]);
 
-  // Save User Data on Change (Debounced slightly or direct)
+  // Save User Data on Change (Debounced slightly)
   useEffect(() => {
     if (currentUser && isDataLoaded) {
-      StorageService.saveData(currentUser, { transactions, settings });
+      const timer = setTimeout(() => {
+        StorageService.saveData(currentUser, { transactions, settings });
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [transactions, settings, currentUser, isDataLoaded]);
 
@@ -46,7 +60,7 @@ export default function App() {
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 
   // --- Enhanced Tooltips ---
-
+  // (Keeping existing Tooltips code for brevity as they remain unchanged)
   const CashFlowTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
@@ -54,7 +68,6 @@ export default function App() {
       const net = payload.find((p: any) => p.dataKey === 'netProfit')?.value || 0;
       const margin = income > 0 ? ((net / income) * 100).toFixed(1) : '0';
 
-      // Find previous month data for MoM comparison
       const currentIndex = chartData.findIndex(item => item.date === label);
       const prevItem = currentIndex > 0 ? chartData[currentIndex - 1] : null;
       
@@ -229,16 +242,23 @@ export default function App() {
     return null;
   };
 
-  // --- End Tooltips ---
-
   const handleLogout = () => {
     setCurrentUser(null);
     setIsDataLoaded(false);
-    setTransactions(INITIAL_TRANSACTIONS); // Reset to clean state
+    setTransactions(INITIAL_TRANSACTIONS); 
   };
 
   if (!currentUser) {
     return <AuthScreen onLogin={(user) => setCurrentUser(user)} />;
+  }
+
+  if (isDataLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center flex-col gap-4">
+        <Loader2 className="animate-spin text-emerald-500" size={48} />
+        <p className="text-slate-400 animate-pulse">Syncing Secure Database...</p>
+      </div>
+    );
   }
 
   return (
