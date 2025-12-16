@@ -1,10 +1,21 @@
 import { Transaction, GlobalSettings } from './types';
 
+// Helper to generate dates in the current month
+const now = new Date();
+const y = now.getFullYear();
+const m = String(now.getMonth() + 1).padStart(2, '0');
+const getDate = (day: number) => {
+    // Handle days that might not exist in current month (e.g. Feb 30)
+    const maxDay = new Date(y, now.getMonth() + 1, 0).getDate();
+    const safeDay = Math.min(day, maxDay);
+    return `${y}-${m}-${String(safeDay).padStart(2, '0')}`;
+};
+
 export const INITIAL_TRANSACTIONS: Transaction[] = [
   // Income
   {
     id: '1',
-    date: '2024-05-15',
+    date: getDate(15),
     description: '123 Maple Drive Closing',
     category: 'Commission',
     amount: 12500,
@@ -13,7 +24,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: '2',
-    date: '2024-05-20',
+    date: getDate(20),
     description: '450 Oak Ave Listing',
     category: 'Commission',
     amount: 8750,
@@ -22,7 +33,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: '3',
-    date: '2024-04-10',
+    date: getDate(10),
     description: '789 Pine Ln Buyer Rep',
     category: 'Commission',
     amount: 9200,
@@ -32,7 +43,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   // Expenses
   {
     id: '4',
-    date: '2024-05-02',
+    date: getDate(2),
     description: 'Zillow Premier Agent',
     category: 'Lead Gen',
     amount: 850,
@@ -41,7 +52,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: '5',
-    date: '2024-05-05',
+    date: getDate(5),
     description: 'Luxury Staging Co.',
     category: 'Staging',
     amount: 2100,
@@ -50,7 +61,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: '6',
-    date: '2024-05-12',
+    date: getDate(12),
     description: 'Pro Photography - Maple Dr',
     category: 'Marketing',
     amount: 450,
@@ -59,7 +70,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: '7',
-    date: '2024-05-18',
+    date: getDate(18),
     description: 'Open House Catering',
     category: 'Marketing',
     amount: 175,
@@ -68,7 +79,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: '8',
-    date: '2024-05-01',
+    date: getDate(1),
     description: 'Brokerage Desk Fees',
     category: 'Office',
     amount: 300,
@@ -77,7 +88,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
   },
   {
     id: '9',
-    date: '2024-05-19',
+    date: getDate(19),
     description: 'Facebook Ads',
     category: 'Marketing',
     amount: 250,
@@ -92,7 +103,7 @@ export const INITIAL_SETTINGS: GlobalSettings = {
   taxRate: 25.0,
   annualWithdrawal: 0,
   rmdStartYear: 10,
-  monthlyRevenueGoal: 20000,
+  monthlyRevenueGoal: 35000,
   goalType: 'revenue',
 };
 

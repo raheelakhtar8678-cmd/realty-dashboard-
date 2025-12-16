@@ -185,8 +185,8 @@ export default function App() {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex w-72 flex-shrink-0 z-20 shadow-2xl border-r border-slate-800 flex-col bg-slate-900">
-        <div className="p-4 border-b border-slate-700 bg-slate-950">
+      <div className="hidden lg:flex w-72 flex-shrink-0 z-20 shadow-2xl border-r border-slate-800 flex-col bg-slate-900 h-full overflow-hidden">
+        <div className="p-4 border-b border-slate-700 bg-slate-950 shrink-0">
            <div className="flex items-center gap-2 mb-4">
               <div className="bg-emerald-600 p-2 rounded-lg">
                 <Home className="text-white" size={20} />

@@ -87,16 +87,6 @@ const SummaryCard = ({ title, summary, target, goalType }: { title: string, summ
   </div>
 );
 
-const Tooltip = ({ text }: { text: string }) => (
-  <div className="group relative inline-block ml-2">
-    <Info size={14} className="text-slate-500 hover:text-indigo-400 cursor-help transition-colors" />
-    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-3 bg-slate-950/95 backdrop-blur border border-slate-700 rounded-lg text-xs text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-      {text}
-      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-950 border-r border-b border-slate-700 transform rotate-45"></div>
-    </div>
-  </div>
-);
-
 const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }) => {
   const [activeTab, setActiveTab] = useState<'insights' | 'scenarios'>('insights');
 
@@ -110,19 +100,15 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
   
   // 10 Year Wealth Calculation
   // We assume monthly contribution = current month net
-  // This calculates future value of a series (FV) + future value of current savings (not tracked here, assuming 0 start for simplicity or just flow)
   const annualContribution = currentNet;
-  const r = settings.reinvestmentRate / 100; // Simplified return rate of portfolio (e.g., 7% market) * reinvestment %
+  // const r = settings.reinvestmentRate / 100; // Not used in this simplified FV
   const marketReturn = 0.08; // Fixed assumption for "market"
-  const effectiveRate = marketReturn; 
   
-  // FV of annuity formula: P * (((1+r)^n - 1) / r)
-  // But adjusted for tax and inflation in the UI
+  // FV of annuity formula accumulation
   const years = 10;
-  // Let's do a simple accumulation loop
   let totalWealth = 0;
   for(let i=1; i<=years; i++) {
-     const yearlyGrowth = totalWealth * effectiveRate;
+     const yearlyGrowth = totalWealth * marketReturn;
      const yearlyContribution = annualContribution; // Assuming constant income
      const taxHit = (yearlyGrowth + yearlyContribution) * (settings.taxRate / 100);
      totalWealth = totalWealth + yearlyGrowth + yearlyContribution - taxHit;
@@ -134,10 +120,10 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
   const inflationAdjWealth = totalWealth / Math.pow(1 + (settings.inflationRate/100), years);
 
   return (
-    <div className="bg-slate-800 border-l border-slate-700 h-full flex flex-col text-slate-200">
+    <div className="bg-slate-800 border-l border-slate-700 h-full flex flex-col text-slate-200 overflow-hidden">
       
       {/* Sidebar Tabs */}
-      <div className="flex border-b border-slate-700 bg-slate-900/50">
+      <div className="flex border-b border-slate-700 bg-slate-900/50 shrink-0">
         <button
           onClick={() => setActiveTab('insights')}
           className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wide flex items-center justify-center gap-2 transition-colors ${
@@ -160,9 +146,10 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 scroll-smooth">
+      {/* Content Area with Scrolling */}
+      <div className="flex-1 overflow-y-auto p-4 scroll-smooth custom-scrollbar">
         {activeTab === 'insights' ? (
-          <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
+          <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300 pb-8">
             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               Performance
@@ -173,9 +160,9 @@ const ControlPanel: React.FC<Props> = ({ summaries, settings, onSettingsChange }
             <SummaryCard title="This Month" summary={summaries.month} target={settings.monthlyRevenueGoal} goalType={settings.goalType} />
           </div>
         ) : (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 pb-8">
             
-            {/* The "Missing One" - Scenario Result */}
+            {/* Future Wealth Result */}
             <div className="bg-gradient-to-br from-indigo-900/50 to-slate-900 p-4 rounded-xl border border-indigo-500/30 shadow-lg">
                 <div className="flex items-center gap-2 mb-3 text-indigo-300 text-xs font-bold uppercase tracking-wider">
                    <Briefcase size={14} /> Future Wealth (10Y)
