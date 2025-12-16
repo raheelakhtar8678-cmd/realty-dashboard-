@@ -7,7 +7,7 @@ import { StorageService } from './services/storage';
 import ControlPanel from './components/ControlPanel';
 import PortfolioGrid from './components/PortfolioGrid';
 import AuthScreen from './components/AuthScreen';
-import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle } from 'lucide-react';
 
 export default function App() {
   // Auth State
@@ -60,7 +60,6 @@ export default function App() {
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 
   // --- Enhanced Tooltips ---
-  // (Keeping existing Tooltips code for brevity as they remain unchanged)
   const CashFlowTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
@@ -380,7 +379,7 @@ export default function App() {
               {activeTab === 'dashboard' ? (
                  <>
                    {/* Card 1: Cash Flow */}
-                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col min-h-[400px]">
+                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col">
                       <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-semibold text-white">Cash Flow Overview</h3>
                         <div className="flex gap-4 text-xs">
@@ -395,29 +394,37 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                            <XAxis dataKey="date" stroke="#64748b" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                            <YAxis 
-                              stroke="#64748b" 
-                              tick={{fontSize: 12}} 
-                              tickFormatter={(value) => `$${value/1000}k`}
-                              tickLine={false} 
-                              axisLine={false}
-                            />
-                            <Tooltip content={<CashFlowTooltip />} cursor={{fill: '#1e293b'}} />
-                            <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
-                            <Bar dataKey="expense" name="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={20} />
-                            <Bar dataKey="netProfit" name="Net Profit (Post-Tax)" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={10} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                      {/* FIXED HEIGHT CONTAINER TO PREVENT CRASH/COLLAPSE */}
+                      <div className="h-[300px] w-full">
+                        {chartData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                              <XAxis dataKey="date" stroke="#64748b" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                              <YAxis 
+                                stroke="#64748b" 
+                                tick={{fontSize: 12}} 
+                                tickFormatter={(value) => `$${value/1000}k`}
+                                tickLine={false} 
+                                axisLine={false}
+                              />
+                              <Tooltip content={<CashFlowTooltip />} cursor={{fill: '#1e293b'}} />
+                              <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+                              <Bar dataKey="expense" name="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={20} />
+                              <Bar dataKey="netProfit" name="Net Profit (Post-Tax)" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={10} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-slate-500 flex-col gap-2">
+                             <Activity size={32} className="opacity-20"/>
+                             <p>No financial data available yet.</p>
+                          </div>
+                        )}
                       </div>
                    </div>
 
                    {/* Card 2: Tax Impact Analysis */}
-                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col min-h-[400px]">
+                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col">
                       <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-semibold text-white">Tax Impact Analysis</h3>
                         <div className="flex gap-4 text-xs">
@@ -429,52 +436,58 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex-1 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={chartData}>
-                            <defs>
-                              <linearGradient id="colorGross" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                              </linearGradient>
-                              <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                            <XAxis dataKey="date" stroke="#64748b" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                            <YAxis 
-                              stroke="#64748b" 
-                              tick={{fontSize: 12}} 
-                              tickFormatter={(value) => `$${value/1000}k`}
-                              tickLine={false} 
-                              axisLine={false}
-                            />
-                            <Tooltip content={<TaxTooltip />} />
-                            <Area 
-                              type="monotone" 
-                              dataKey="grossProfit" 
-                              name="Gross Profit" 
-                              stroke="#06b6d4" 
-                              fillOpacity={1} 
-                              fill="url(#colorGross)" 
-                            />
-                            <Area 
-                              type="monotone" 
-                              dataKey="netProfit" 
-                              name="Net Profit (Post-Tax)" 
-                              stroke="#6366f1" 
-                              fillOpacity={1} 
-                              fill="url(#colorNet)" 
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
+                      <div className="h-[300px] w-full">
+                         {chartData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={chartData}>
+                                <defs>
+                                  <linearGradient id="colorGross" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                                  </linearGradient>
+                                  <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                <XAxis dataKey="date" stroke="#64748b" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
+                                <YAxis 
+                                  stroke="#64748b" 
+                                  tick={{fontSize: 12}} 
+                                  tickFormatter={(value) => `$${value/1000}k`}
+                                  tickLine={false} 
+                                  axisLine={false}
+                                />
+                                <Tooltip content={<TaxTooltip />} />
+                                <Area 
+                                  type="monotone" 
+                                  dataKey="grossProfit" 
+                                  name="Gross Profit" 
+                                  stroke="#06b6d4" 
+                                  fillOpacity={1} 
+                                  fill="url(#colorGross)" 
+                                />
+                                <Area 
+                                  type="monotone" 
+                                  dataKey="netProfit" 
+                                  name="Net Profit (Post-Tax)" 
+                                  stroke="#6366f1" 
+                                  fillOpacity={1} 
+                                  fill="url(#colorNet)" 
+                                />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                         ) : (
+                          <div className="h-full flex items-center justify-center text-slate-500">
+                             <p>Add transactions to see tax visualization.</p>
+                          </div>
+                        )}
                       </div>
                    </div>
 
                    {/* Card 3: 12-Month Forecast */}
-                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col min-h-[400px]">
+                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col">
                       <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                            <Activity size={18} className="text-emerald-400"/>
@@ -489,7 +502,7 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex-1 min-h-0">
+                      <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={projectionData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
@@ -542,30 +555,36 @@ export default function App() {
               <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 h-[400px] flex flex-col">
                  <h4 className="text-sm font-semibold text-slate-300 mb-4">Expense Breakdown</h4>
                  <div className="flex-1">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={categoryData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {categoryData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#1e293b" strokeWidth={2} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<ExpenseTooltip />} />
-                        <Legend 
-                           verticalAlign="bottom" 
-                           height={36} 
-                           iconSize={10}
-                           wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }}
-                        />
-                      </PieChart>
-                   </ResponsiveContainer>
+                   {categoryData.length > 0 ? (
+                     <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={categoryData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {categoryData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#1e293b" strokeWidth={2} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<ExpenseTooltip />} />
+                          <Legend 
+                             verticalAlign="bottom" 
+                             height={36} 
+                             iconSize={10}
+                             wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }}
+                          />
+                        </PieChart>
+                     </ResponsiveContainer>
+                   ) : (
+                      <div className="h-full flex items-center justify-center text-slate-500 text-sm">
+                        No expenses recorded.
+                      </div>
+                   )}
                  </div>
               </div>
 
