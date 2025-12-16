@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { StorageService } from '../services/storage';
-import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, Home, RefreshCw, Cloud, CloudOff } from 'lucide-react';
+import { resetSupabaseConfig } from '../services/supabaseClient';
+import { Lock, Mail, ShieldCheck, ArrowRight, AlertCircle, Home, RefreshCw, Cloud, CloudOff, Database, Key, Terminal, Check, Copy } from 'lucide-react';
 
 interface Props {
   onLogin: (email: string) => void;
@@ -8,12 +9,18 @@ interface Props {
 
 export default function AuthScreen({ onLogin }: Props) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [showSetup, setShowSetup] = useState(false);
   const [formData, setFormData] = useState({ 
     email: '', 
     password: '', 
     confirmPassword: ''
   });
   
+  const [setupData, setSetupData] = useState({
+      url: localStorage.getItem('MANUAL_SUPABASE_URL') || '',
+      key: localStorage.getItem('MANUAL_SUPABASE_KEY') || ''
+  });
+
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -61,6 +68,122 @@ export default function AuthScreen({ onLogin }: Props) {
       setIsLoading(false);
     }
   };
+
+  const saveConnection = () => {
+      localStorage.setItem('MANUAL_SUPABASE_URL', setupData.url.trim());
+      localStorage.setItem('MANUAL_SUPABASE_KEY', setupData.key.trim());
+      window.location.reload();
+  };
+
+  const copySQL = () => {
+      const sql = `
+-- 1. Create Data Table
+create table if not exists user_data (
+  user_id uuid references auth.users not null primary key,
+  content jsonb,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 2. Enable Security
+alter table user_data enable row level security;
+
+-- 3. Add Policies (Access Control)
+create policy "Users can read own data" on user_data for select using (auth.uid() = user_id);
+create policy "Users can insert own data" on user_data for insert with check (auth.uid() = user_id);
+create policy "Users can update own data" on user_data for update using (auth.uid() = user_id);
+      `;
+      navigator.clipboard.writeText(sql);
+      alert("SQL Copied to clipboard! Paste this in Supabase SQL Editor.");
+  };
+
+  if (showSetup) {
+      return (
+          <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+              <div className="max-w-2xl w-full bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
+                  <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-950/50">
+                      <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                          <Database className="text-emerald-500" size={20}/> Setup Cloud Database
+                      </h2>
+                      <button onClick={() => setShowSetup(false)} className="text-slate-400 hover:text-white"><CloudOff size={20}/></button>
+                  </div>
+                  <div className="p-6 space-y-6">
+                      
+                      {/* Step 1: SQL */}
+                      <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                             <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                                <Terminal size={16}/> Step 1: Initialize Database
+                             </h3>
+                             <button onClick={copySQL} className="text-xs flex items-center gap-1 text-slate-400 hover:text-white bg-slate-700 px-2 py-1 rounded">
+                                <Copy size={12}/> Copy SQL
+                             </button>
+                          </div>
+                          <div className="bg-slate-950 p-4 rounded-lg border border-slate-700 text-xs font-mono text-slate-300 overflow-x-auto">
+                              <pre>{`-- Run this in Supabase SQL Editor
+create table if not exists user_data (
+  user_id uuid references auth.users not null primary key,
+  content jsonb,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table user_data enable row level security;
+
+create policy "Users can read own data" on user_data for select using (auth.uid() = user_id);
+create policy "Users can insert own data" on user_data for insert with check (auth.uid() = user_id);
+create policy "Users can update own data" on user_data for update using (auth.uid() = user_id);`}</pre>
+                          </div>
+                          <p className="text-[10px] text-slate-500">
+                             Go to your Supabase Project &gt; SQL Editor &gt; New Query &gt; Paste & Run.
+                          </p>
+                      </div>
+
+                      {/* Step 2: Keys */}
+                      <div className="space-y-3 pt-4 border-t border-slate-700">
+                          <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                                <Key size={16}/> Step 2: Connect App
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                              Enter your project credentials found in Project Settings &gt; API.
+                          </p>
+                          <div className="grid gap-4">
+                              <div>
+                                  <label className="text-xs font-bold text-slate-500 mb-1 block">Project URL</label>
+                                  <input 
+                                    type="text" 
+                                    placeholder="https://xyz.supabase.co"
+                                    className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                                    value={setupData.url}
+                                    onChange={e => setSetupData({...setupData, url: e.target.value})}
+                                  />
+                              </div>
+                              <div>
+                                  <label className="text-xs font-bold text-slate-500 mb-1 block">Anon Key (Public)</label>
+                                  <input 
+                                    type="password" 
+                                    placeholder="eyJh..."
+                                    className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                                    value={setupData.key}
+                                    onChange={e => setSetupData({...setupData, key: e.target.value})}
+                                  />
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="pt-4 flex justify-end gap-3">
+                          <button onClick={() => setShowSetup(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white">Cancel</button>
+                          <button 
+                            onClick={saveConnection}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg shadow-emerald-900/20 flex items-center gap-2"
+                          >
+                             <Check size={16} /> Save & Connect
+                          </button>
+                      </div>
+
+                  </div>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
@@ -180,20 +303,22 @@ export default function AuthScreen({ onLogin }: Props) {
             
             <div className="mt-6 border-t border-slate-700/50 pt-4 w-full">
                <div className="flex justify-center mb-2">
-                 <span className={`flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full border ${StorageService.isOnline() ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+                 <button
+                   type="button" 
+                   onClick={() => setShowSetup(true)}
+                   className={`flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full border transition-all hover:scale-105 active:scale-95 ${StorageService.isOnline() ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-white'}`}
+                  >
                    {StorageService.isOnline() ? (
-                     <><Cloud size={10} className="text-emerald-500"/> Cloud Sync Active</>
+                     <><Cloud size={10} className="text-emerald-500"/> Cloud Sync Active (Click to Config)</>
                    ) : (
-                     <><CloudOff size={10} className="text-amber-500"/> Offline Mode (Local Only)</>
+                     <><CloudOff size={10} className="text-amber-500"/> Offline Mode • Connect Cloud</>
                    )}
-                 </span>
+                 </button>
                </div>
                
                {!StorageService.isOnline() && (
                  <p className="text-[10px] text-slate-500 text-center mx-auto max-w-[280px] leading-relaxed">
-                   <AlertCircle size={10} className="inline mr-1 text-slate-400"/>
-                   Your data is currently saved to <strong>this browser only</strong>. 
-                   To sync between mobile and desktop, you must configure your Supabase connection keys.
+                   Data is currently local. Click "Connect Cloud" above to setup database for mobile sync.
                  </p>
                )}
             </div>
