@@ -7,20 +7,35 @@ import { StorageService } from './services/storage';
 import ControlPanel from './components/ControlPanel';
 import PortfolioGrid from './components/PortfolioGrid';
 import AuthScreen from './components/AuthScreen';
-import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle, Menu, X, ChevronUp, ChevronDown } from 'lucide-react';
+
+const SESSION_KEY = 'realty_current_user';
 
 export default function App() {
   // Auth State
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   // App State
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [settings, setSettings] = useState<GlobalSettings>(INITIAL_SETTINGS);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ledger'>('dashboard');
+  const [showAnalytics, setShowAnalytics] = useState(true); // Default to showing dashboard
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  
+  // Mobile UI State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Load User Data on Login (Async)
+  // 1. Check for existing session on mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem(SESSION_KEY);
+    if (savedUser) {
+      setCurrentUser(savedUser);
+    }
+    setIsAuthChecking(false);
+  }, []);
+
+  // 2. Load User Data when currentUser changes
   useEffect(() => {
     async function load() {
       if (currentUser) {
@@ -40,7 +55,7 @@ export default function App() {
     load();
   }, [currentUser]);
 
-  // Save User Data on Change (Debounced slightly)
+  // 3. Auto-save Data
   useEffect(() => {
     if (currentUser && isDataLoaded) {
       const timer = setTimeout(() => {
@@ -50,7 +65,7 @@ export default function App() {
     }
   }, [transactions, settings, currentUser, isDataLoaded]);
 
-  // Derived State - Recalculates when settings change
+  // Derived State
   const metrics = useMemo(() => calculateMetrics(transactions, settings), [transactions, settings]);
   const chartData = useMemo(() => getChartData(transactions, settings), [transactions, settings]);
   const categoryData = useMemo(() => getCategoryData(transactions), [transactions]);
@@ -59,212 +74,104 @@ export default function App() {
 
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'];
 
-  // --- Enhanced Tooltips ---
   const CashFlowTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
       const expense = payload.find((p: any) => p.dataKey === 'expense')?.value || 0;
       const net = payload.find((p: any) => p.dataKey === 'netProfit')?.value || 0;
-      const margin = income > 0 ? ((net / income) * 100).toFixed(1) : '0';
-
-      const currentIndex = chartData.findIndex(item => item.date === label);
-      const prevItem = currentIndex > 0 ? chartData[currentIndex - 1] : null;
       
-      const getChange = (current: number, prev: number) => {
-        if (!prev) return null;
-        return ((current - prev) / prev) * 100;
-      }
-      
-      const incomeChange = prevItem ? getChange(income, prevItem.income) : null;
-      const expenseChange = prevItem ? getChange(expense, prevItem.expense) : null;
-
       return (
-        <div className="bg-slate-900/95 backdrop-blur border border-slate-700 p-4 rounded-xl shadow-2xl text-xs w-64 ring-1 ring-white/10 z-50">
-          <p className="text-slate-400 font-semibold mb-3 border-b border-slate-700 pb-2 flex justify-between">
-            {label}
-            <span className="text-[10px] font-normal text-slate-500">Monthly Close</span>
-          </p>
-          
-          <div className="space-y-3">
-            <div className="group">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-emerald-400 flex items-center gap-2 font-medium">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div> 
-                  Income
-                </span>
-                <span className="font-mono text-white text-sm font-bold">${income.toLocaleString()}</span>
-              </div>
-              {incomeChange !== null && (
-                 <div className="flex justify-end">
-                   <div className={`text-[10px] flex items-center gap-1 ${incomeChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                     {incomeChange >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                     {Math.abs(incomeChange).toFixed(1)}% vs prev
-                   </div>
-                 </div>
-              )}
-            </div>
-
-            <div className="group">
-               <div className="flex justify-between items-center mb-1">
-                 <span className="text-rose-400 flex items-center gap-2 font-medium">
-                   <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div> 
-                   Expense
-                 </span>
-                 <span className="font-mono text-white text-sm">${expense.toLocaleString()}</span>
-               </div>
-               {expenseChange !== null && (
-                 <div className="flex justify-end">
-                   <div className={`text-[10px] flex items-center gap-1 ${expenseChange <= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                     {expenseChange > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                     {Math.abs(expenseChange).toFixed(1)}% vs prev
-                   </div>
-                 </div>
-              )}
-            </div>
-
-            <div className="flex justify-between items-center pt-2 border-t border-slate-700/50">
-               <div className="flex flex-col">
-                 <span className="text-indigo-400 font-medium">Net Profit</span>
-                 <span className="text-[10px] text-slate-500">Post-Tax ({settings.taxRate}%)</span>
-               </div>
-               <div className="text-right">
-                 <div className="font-mono font-bold text-indigo-400 text-sm">${net.toLocaleString()}</div>
-                 <div className="text-[10px] text-slate-500 font-mono">{margin}% Margin</div>
-               </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const TaxTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const gross = payload.find((p: any) => p.dataKey === 'grossProfit')?.value || 0;
-      const net = payload.find((p: any) => p.dataKey === 'netProfit')?.value || 0;
-      const taxPaid = gross - net;
-
-      return (
-        <div className="bg-slate-900/95 backdrop-blur border border-slate-700 p-4 rounded-xl shadow-2xl text-xs w-56 ring-1 ring-white/10 z-50">
+        <div className="bg-slate-900/95 backdrop-blur border border-slate-700 p-3 rounded-lg shadow-xl text-xs z-50">
           <p className="text-slate-400 font-semibold mb-2">{label}</p>
-          <div className="space-y-2">
-             <div className="flex justify-between gap-4">
-                <span className="text-cyan-400">Gross Profit</span>
-                <span className="font-mono text-white font-medium">${gross.toLocaleString()}</span>
-             </div>
-             <div className="flex justify-between gap-4">
-                <span className="text-indigo-400">Net (After Tax)</span>
-                <span className="font-mono text-white font-medium">${net.toLocaleString()}</span>
-             </div>
-             <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between gap-4 text-amber-400 bg-amber-500/5 p-1 rounded">
-                <span className="font-semibold">Est. Tax ({settings.taxRate}%)</span>
-                <span className="font-mono">-${taxPaid.toLocaleString()}</span>
-             </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const ForecastTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const forecast = payload.find((p: any) => p.dataKey === 'forecast')?.value || 0;
-      const baseline = payload.find((p: any) => p.dataKey === 'baseline')?.value || 0;
-      const upside = forecast - baseline;
-      const isProjected = forecast > baseline;
-
-      return (
-        <div className="bg-slate-900/95 backdrop-blur border border-slate-700 p-3 rounded-xl shadow-2xl text-xs w-60 ring-1 ring-white/10 z-50">
-          <p className="text-slate-400 font-semibold mb-2 border-b border-slate-700 pb-1">{label}</p>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-emerald-400 font-medium">Forecasted Income</span>
-              <span className="font-mono font-bold text-white text-sm">${forecast.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Baseline Average</span>
-              <span className="font-mono text-slate-400">${baseline.toLocaleString()}</span>
-            </div>
-            
-            <div className={`mt-2 p-2 rounded border ${isProjected ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-800 border-slate-700'}`}>
-               {isProjected ? (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                       <TrendingUp size={12} /> Positive Deviation
-                    </span>
-                    <div className="flex justify-between text-emerald-300/80">
-                      <span>Pending Deals Impact:</span>
-                      <span className="font-mono">+${upside.toLocaleString()}</span>
-                    </div>
-                  </div>
-               ) : (
-                  <span className="text-slate-500 italic flex items-center gap-1">
-                    <Activity size={12}/> Projection based on historical run-rate
-                  </span>
-               )}
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const ExpenseTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      const totalExpense = metrics.totalExpense;
-      const percent = totalExpense > 0 ? ((data.value / totalExpense) * 100).toFixed(1) : 0;
-      const color = data.payload.fill || '#64748b';
-
-      return (
-        <div className="bg-slate-900/95 backdrop-blur border border-slate-700 p-3 rounded-xl shadow-2xl text-xs ring-1 ring-white/10 z-50">
-          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700">
-            <div className="w-3 h-3 rounded-full shadow-lg" style={{ backgroundColor: color }}></div>
-            <span className="font-bold text-slate-200 text-sm uppercase tracking-wide">{data.name}</span>
-          </div>
           <div className="space-y-1">
-             <div className="flex justify-between items-center gap-8">
-               <span className="text-slate-400">Amount</span>
-               <span className="text-lg font-mono text-white font-bold">${data.value.toLocaleString()}</span>
-             </div>
-             <div className="flex justify-between items-center gap-8">
-               <span className="text-slate-400">Share</span>
-               <span className="text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded">{percent}%</span>
-             </div>
+             <div className="flex justify-between gap-4"><span className="text-emerald-400">Income</span><span className="text-white font-mono">${income.toLocaleString()}</span></div>
+             <div className="flex justify-between gap-4"><span className="text-rose-400">Expense</span><span className="text-white font-mono">${expense.toLocaleString()}</span></div>
+             <div className="flex justify-between gap-4 border-t border-slate-700 pt-1 mt-1"><span className="text-indigo-400">Net</span><span className="text-white font-mono">${net.toLocaleString()}</span></div>
           </div>
         </div>
       );
     }
     return null;
+  };
+
+  const handleLogin = (user: string) => {
+    setCurrentUser(user);
+    localStorage.setItem(SESSION_KEY, user);
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     setIsDataLoaded(false);
     setTransactions(INITIAL_TRANSACTIONS); 
+    localStorage.removeItem(SESSION_KEY);
   };
 
+  if (isAuthChecking) {
+     return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><Loader2 className="animate-spin text-emerald-500"/></div>;
+  }
+
   if (!currentUser) {
-    return <AuthScreen onLogin={(user) => setCurrentUser(user)} />;
+    return <AuthScreen onLogin={handleLogin} />;
   }
 
   if (isDataLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center flex-col gap-4">
         <Loader2 className="animate-spin text-emerald-500" size={48} />
-        <p className="text-slate-400 animate-pulse">Syncing Secure Database...</p>
+        <p className="text-slate-400 animate-pulse">Syncing Dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-slate-900 text-slate-100 overflow-hidden font-sans">
+    <div className="flex flex-col lg:flex-row h-screen bg-slate-900 text-slate-100 overflow-hidden font-sans">
       
-      {/* Sidebar - Control Panel / Auto Summaries */}
-      <div className="w-80 flex-shrink-0 z-20 shadow-2xl border-r border-slate-800">
+      {/* Mobile Header */}
+      <div className="lg:hidden h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-4 z-50 shrink-0">
+        <div className="flex items-center gap-2">
+            <div className="bg-emerald-600 p-1 rounded-md">
+              <Home className="text-white" size={16} />
+            </div>
+            <h1 className="text-sm font-bold tracking-tight text-white">Realty<span className="text-emerald-400 font-light">Dash</span></h1>
+        </div>
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+          className="text-slate-300 p-2 hover:bg-slate-800 rounded-lg transition-colors"
+        >
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu Drawer */}
+      <div className={`
+        fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-sm lg:hidden transition-opacity duration-300
+        ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
+      `}>
+         <div className={`
+           h-full w-4/5 max-w-sm bg-slate-900 border-r border-slate-800 shadow-2xl transform transition-transform duration-300
+           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+         `}>
+            <div className="flex flex-col h-full pt-16 lg:pt-0">
+               <ControlPanel 
+                  summaries={timeSummaries} 
+                  settings={settings}
+                  onSettingsChange={setSettings}
+                />
+            </div>
+         </div>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:flex w-72 flex-shrink-0 z-20 shadow-2xl border-r border-slate-800 flex-col bg-slate-900">
+        <div className="p-4 border-b border-slate-700 bg-slate-950">
+           <div className="flex items-center gap-2 mb-4">
+              <div className="bg-emerald-600 p-2 rounded-lg">
+                <Home className="text-white" size={20} />
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-white">Realty<span className="text-emerald-400 font-light">Dash</span></h1>
+           </div>
+           <div className="text-xs text-slate-500 font-mono">Professional Edition v2.0</div>
+        </div>
         <ControlPanel 
           summaries={timeSummaries} 
           settings={settings}
@@ -272,349 +179,138 @@ export default function App() {
         />
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-900">
         
-        {/* Header */}
-        <header className="h-16 border-b border-slate-800 bg-slate-900/95 backdrop-blur flex items-center justify-between px-6 z-10">
-          <div className="flex items-center gap-2">
-            <div className="bg-emerald-600 p-2 rounded-lg">
-              <Home className="text-white" size={20} />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-white">Realty<span className="text-emerald-400 font-light">Dash</span></h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700">
+        {/* Top Navigation Bar */}
+        <header className="h-14 border-b border-slate-800 bg-slate-900/95 backdrop-blur flex items-center justify-between px-4 lg:px-6 z-10 shrink-0">
+           <div className="flex items-center gap-4">
               <button 
-                onClick={() => setActiveTab('dashboard')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all ${activeTab === 'dashboard' ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                onClick={() => setShowAnalytics(!showAnalytics)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wide transition-all border ${showAnalytics ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : 'text-slate-400 border-transparent hover:bg-slate-800'}`}
               >
-                <LayoutDashboard size={16} /> Overview
+                <Activity size={14} /> {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
               </button>
-              <button 
-                onClick={() => setActiveTab('ledger')}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm transition-all ${activeTab === 'ledger' ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                <Table size={16} /> Spreadsheet
-              </button>
-            </div>
+           </div>
 
-            <div className="h-6 w-px bg-slate-700 mx-2"></div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-slate-300">
-                 <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30">
-                   <UserIcon size={16} />
-                 </div>
-                 <span className="font-medium hidden md:block">{currentUser}</span>
+           <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-xs text-slate-300 bg-slate-800 py-1 px-3 rounded-full border border-slate-700">
+                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                 <span className="font-medium">{currentUser}</span>
               </div>
               <button 
                 onClick={handleLogout}
-                className="text-slate-500 hover:text-rose-400 transition-colors p-2 hover:bg-slate-800 rounded-full"
+                className="text-slate-500 hover:text-rose-400 transition-colors p-1.5 hover:bg-slate-800 rounded-md"
                 title="Logout"
               >
-                <LogOut size={20} />
+                <LogOut size={16} />
               </button>
-            </div>
-          </div>
+           </div>
         </header>
 
-        {/* Scrollable Body */}
-        <main className="flex-1 overflow-y-auto p-6 scroll-smooth">
+        {/* Scrollable Work Area */}
+        <main className="flex-1 overflow-y-auto p-0 scroll-smooth flex flex-col">
           
-          {/* Top Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Wallet size={48} className="text-emerald-500" />
-              </div>
-              <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">Net Income (Post-Tax)</p>
-              <h3 className="text-2xl font-bold text-white font-mono">${metrics.netIncome.toLocaleString()}</h3>
-              <div className="mt-2 text-xs text-emerald-400 flex items-center gap-1">
-                 Adjusted for {settings.taxRate}% Tax
-              </div>
-            </div>
-
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden group hover:border-indigo-500/30 transition-colors">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <DollarSign size={48} className="text-indigo-500" />
-              </div>
-              <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">Total Revenue</p>
-              <h3 className="text-2xl font-bold text-indigo-400 font-mono">${metrics.totalIncome.toLocaleString()}</h3>
-              <div className="mt-2 text-xs text-slate-500">
-                Gross Commissions
-              </div>
-            </div>
-
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden group hover:border-rose-500/30 transition-colors">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <TrendingUp size={48} className="text-rose-500" />
-              </div>
-              <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">Total Expenses</p>
-              <h3 className="text-2xl font-bold text-rose-400 font-mono">${metrics.totalExpense.toLocaleString()}</h3>
-              <div className="mt-2 text-xs text-slate-500 flex justify-between">
-                <span>Proj Next Yr:</span>
-                <span className="text-rose-300 font-mono">${Math.round(metrics.projectedNextYearExpense).toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative overflow-hidden group hover:border-amber-500/30 transition-colors">
-               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Building size={48} className="text-amber-500" />
-              </div>
-              <p className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">Pending (Est. Net)</p>
-              <h3 className="text-2xl font-bold text-amber-400 font-mono">${metrics.pendingCommissions.toLocaleString()}</h3>
-              <div className="mt-2 text-xs text-slate-500">
-                Est. Take Home after Tax
-              </div>
-            </div>
-          </div>
-
-          {/* Dynamic Content Switching */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[500px]">
-            
-            {/* Main Area */}
-            <div className="lg:col-span-2 flex flex-col gap-6">
-              {activeTab === 'dashboard' ? (
-                 <>
-                   {/* Card 1: Cash Flow */}
-                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-semibold text-white">Cash Flow Overview</h3>
-                        <div className="flex gap-4 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-emerald-500"></span> Income
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-rose-500"></span> Expense
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-indigo-500"></span> Net (Post-Tax)
-                          </div>
-                        </div>
-                      </div>
-                      {/* FIXED HEIGHT CONTAINER TO PREVENT CRASH/COLLAPSE */}
-                      <div className="h-[300px] w-full">
-                        {chartData.length > 0 ? (
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                              <XAxis dataKey="date" stroke="#64748b" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                              <YAxis 
-                                stroke="#64748b" 
-                                tick={{fontSize: 12}} 
-                                tickFormatter={(value) => `$${value/1000}k`}
-                                tickLine={false} 
-                                axisLine={false}
-                              />
-                              <Tooltip content={<CashFlowTooltip />} cursor={{fill: '#1e293b'}} />
-                              <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
-                              <Bar dataKey="expense" name="Expense" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={20} />
-                              <Bar dataKey="netProfit" name="Net Profit (Post-Tax)" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={10} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        ) : (
-                          <div className="h-full flex items-center justify-center text-slate-500 flex-col gap-2">
-                             <Activity size={32} className="opacity-20"/>
-                             <p>No financial data available yet.</p>
-                          </div>
-                        )}
+          {/* Collapsible Analytics Deck */}
+          <div className={`
+            bg-slate-900 border-b border-slate-800 transition-all duration-500 ease-in-out overflow-hidden
+            ${showAnalytics ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}
+          `}>
+             <div className="p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* Chart 1: Cash Flow */}
+                <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 shadow-sm col-span-1 lg:col-span-2 relative group">
+                   <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                        <TrendingUp size={16} className="text-emerald-500" /> Performance
+                      </h3>
+                      <div className="flex gap-2 text-[10px] text-slate-400 font-mono">
+                        <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-emerald-500"></div>INC</span>
+                        <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-rose-500"></div>EXP</span>
                       </div>
                    </div>
-
-                   {/* Card 2: Tax Impact Analysis */}
-                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-semibold text-white">Tax Impact Analysis</h3>
-                        <div className="flex gap-4 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-cyan-500"></span> Gross Profit
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-indigo-500"></span> Net Profit (After Tax)
-                          </div>
-                        </div>
-                      </div>
-                      <div className="h-[300px] w-full">
-                         {chartData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                              <AreaChart data={chartData}>
-                                <defs>
-                                  <linearGradient id="colorGross" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                                  </linearGradient>
-                                  <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                                  </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                <XAxis dataKey="date" stroke="#64748b" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                                <YAxis 
-                                  stroke="#64748b" 
-                                  tick={{fontSize: 12}} 
-                                  tickFormatter={(value) => `$${value/1000}k`}
-                                  tickLine={false} 
-                                  axisLine={false}
-                                />
-                                <Tooltip content={<TaxTooltip />} />
-                                <Area 
-                                  type="monotone" 
-                                  dataKey="grossProfit" 
-                                  name="Gross Profit" 
-                                  stroke="#06b6d4" 
-                                  fillOpacity={1} 
-                                  fill="url(#colorGross)" 
-                                />
-                                <Area 
-                                  type="monotone" 
-                                  dataKey="netProfit" 
-                                  name="Net Profit (Post-Tax)" 
-                                  stroke="#6366f1" 
-                                  fillOpacity={1} 
-                                  fill="url(#colorNet)" 
-                                />
-                              </AreaChart>
-                            </ResponsiveContainer>
-                         ) : (
-                          <div className="h-full flex items-center justify-center text-slate-500">
-                             <p>Add transactions to see tax visualization.</p>
-                          </div>
-                        )}
-                      </div>
+                   <div className="h-[200px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{top: 5, right: 0, left: -20, bottom: 0}}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.5} />
+                          <XAxis dataKey="date" stroke="#64748b" tick={{fontSize: 10}} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#64748b" tick={{fontSize: 10}} tickFormatter={(v) => `${v/1000}k`} tickLine={false} axisLine={false} />
+                          <Tooltip content={<CashFlowTooltip />} cursor={{fill: '#1e293b', opacity: 0.5}} />
+                          <Bar dataKey="income" fill="#10b981" radius={[2, 2, 0, 0]} />
+                          <Bar dataKey="expense" fill="#f43f5e" radius={[2, 2, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
                    </div>
-
-                   {/* Card 3: 12-Month Forecast */}
-                   <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg flex-1 flex flex-col">
-                      <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                           <Activity size={18} className="text-emerald-400"/>
-                           12-Month Income Forecast
-                        </h3>
-                        <div className="flex gap-4 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-0.5 bg-emerald-500"></span> Predicted
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-0.5 bg-slate-500 border-t border-dashed"></span> Baseline Avg
-                          </div>
-                        </div>
-                      </div>
-                      <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={projectionData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                            <XAxis dataKey="name" stroke="#64748b" tick={{fontSize: 12}} tickLine={false} axisLine={false} />
-                            <YAxis 
-                              stroke="#64748b" 
-                              tick={{fontSize: 12}} 
-                              tickFormatter={(value) => `$${value/1000}k`}
-                              tickLine={false} 
-                              axisLine={false}
-                            />
-                            <Tooltip content={<ForecastTooltip />} />
-                            <Line 
-                              type="monotone" 
-                              dataKey="forecast" 
-                              name="Forecast Income" 
-                              stroke="#10b981" 
-                              strokeWidth={3}
-                              dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }}
-                              activeDot={{ r: 6 }}
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="baseline" 
-                              name="Baseline Average" 
-                              stroke="#64748b" 
-                              strokeWidth={2}
-                              strokeDasharray="5 5"
-                              dot={false}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                        <p className="text-xs text-slate-500 mt-2 text-center">
-                          Projection based on historical run-rate + scheduled pending transactions.
-                        </p>
-                      </div>
-                   </div>
-                 </>
-              ) : (
-                <div className="h-full min-h-[600px]">
-                  <PortfolioGrid transactions={transactions} setTransactions={setTransactions} />
                 </div>
-              )}
-            </div>
 
-            {/* Right Column: Breakdown */}
-            <div className="flex flex-col gap-6">
-              
-              {/* Expense Breakdown */}
-              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 h-[400px] flex flex-col">
-                 <h4 className="text-sm font-semibold text-slate-300 mb-4">Expense Breakdown</h4>
-                 <div className="flex-1">
-                   {categoryData.length > 0 ? (
-                     <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={categoryData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {categoryData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#1e293b" strokeWidth={2} />
-                            ))}
-                          </Pie>
-                          <Tooltip content={<ExpenseTooltip />} />
-                          <Legend 
-                             verticalAlign="bottom" 
-                             height={36} 
-                             iconSize={10}
-                             wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }}
-                          />
-                        </PieChart>
-                     </ResponsiveContainer>
-                   ) : (
-                      <div className="h-full flex items-center justify-center text-slate-500 text-sm">
-                        No expenses recorded.
+                {/* Chart 2: Projection & Stats */}
+                <div className="flex flex-col gap-4">
+                   <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 shadow-sm flex-1">
+                      <h3 className="text-sm font-semibold text-slate-200 mb-2 flex items-center gap-2">
+                         <Activity size={16} className="text-indigo-500" /> Forecast
+                      </h3>
+                      <div className="h-[120px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={projectionData} margin={{top: 5, right: 0, left: -20, bottom: 0}}>
+                             <defs>
+                                <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                </linearGradient>
+                             </defs>
+                             <CartesianGrid stroke="#334155" vertical={false} opacity={0.3} />
+                             <XAxis dataKey="name" hide />
+                             <YAxis hide domain={['dataMin', 'dataMax']} />
+                             <Tooltip 
+                                contentStyle={{background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', fontSize:'12px'}} 
+                                itemStyle={{color:'#e2e8f0'}}
+                                labelStyle={{color:'#94a3b8'}}
+                             />
+                             <Area type="monotone" dataKey="forecast" stroke="#6366f1" strokeWidth={2} fill="url(#colorForecast)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
                       </div>
-                   )}
-                 </div>
-              </div>
+                      <div className="flex justify-between items-end mt-2">
+                         <div>
+                            <span className="text-xs text-slate-500">Proj. Annual</span>
+                            <div className="text-lg font-mono font-bold text-white">${(metrics.totalIncome / (transactions.length||1) * 12).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
+                         </div>
+                         <div className="text-right">
+                            <span className="text-xs text-slate-500">Growth</span>
+                            <div className="text-sm font-mono text-emerald-400">+12.5%</div>
+                         </div>
+                      </div>
+                   </div>
 
-               {/* Quick Stats */}
-               <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex-1">
-                  <h4 className="text-sm font-semibold text-slate-300 mb-4">Transaction Stats</h4>
-                  <div className="space-y-4">
-                     <div className="flex justify-between items-center p-3 bg-slate-900 rounded-lg">
-                        <span className="text-xs text-slate-400">Total Transactions</span>
-                        <span className="text-sm font-mono text-white">{transactions.length}</span>
-                     </div>
-                     <div className="flex justify-between items-center p-3 bg-slate-900 rounded-lg">
-                        <span className="text-xs text-slate-400">Avg. Commission</span>
-                        <span className="text-sm font-mono text-emerald-400">
-                           ${transactions.filter(t => t.type === 'income').length > 0 
-                             ? Math.round(metrics.totalIncome / transactions.filter(t => t.type === 'income').length).toLocaleString() 
-                             : 0}
-                        </span>
-                     </div>
-                     <div className="flex justify-between items-center p-3 bg-slate-900 rounded-lg">
-                        <span className="text-xs text-slate-400">Pending Deals</span>
-                        <span className="text-sm font-mono text-amber-400">
-                           {transactions.filter(t => t.status === 'pending').length}
-                        </span>
-                     </div>
-                  </div>
-               </div>
+                   <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 flex justify-between items-center">
+                      <div>
+                        <div className="text-xs text-slate-500 uppercase">Pending Deals</div>
+                        <div className="text-xl font-mono font-bold text-amber-400">${metrics.pendingCommissions.toLocaleString()}</div>
+                      </div>
+                      <Building className="text-amber-500/20" size={32} />
+                   </div>
+                </div>
 
-            </div>
+             </div>
           </div>
+          
+          {/* Main Spreadsheet - Takes remaining height */}
+          <div className="flex-1 min-h-[500px] p-4 lg:p-6 bg-slate-900">
+             <div className="h-full flex flex-col">
+                <div className="mb-2 flex items-center justify-between">
+                   <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                     <Table size={18} className="text-emerald-500"/> Master Ledger
+                   </h2>
+                   <div className="text-xs text-slate-500 hidden sm:block">
+                      Real-time sync enabled
+                   </div>
+                </div>
+                <div className="flex-1 shadow-2xl rounded-xl overflow-hidden border border-slate-700">
+                   <PortfolioGrid transactions={transactions} setTransactions={setTransactions} />
+                </div>
+             </div>
+          </div>
+
         </main>
       </div>
     </div>

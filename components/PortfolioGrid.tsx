@@ -62,9 +62,9 @@ const DashboardTickerItem = ({ label, value, subValue, type }: { label: string, 
 
   return (
     <div className={`flex flex-col px-4 py-2 border-r last:border-r-0 border-slate-700/50 min-w-[120px] ${type !== 'neutral' ? colors[type] + ' border-b-2' : ''}`}>
-      <span className="text-[10px] uppercase tracking-wider font-semibold opacity-70 mb-0.5">{label}</span>
-      <span className="text-lg font-mono font-bold tracking-tight">{value}</span>
-      {subValue && <span className="text-[10px] opacity-60 font-medium">{subValue}</span>}
+      <span className="text-[10px] uppercase tracking-wider font-semibold opacity-70 mb-0.5 whitespace-nowrap">{label}</span>
+      <span className="text-lg font-mono font-bold tracking-tight whitespace-nowrap">{value}</span>
+      {subValue && <span className="text-[10px] opacity-60 font-medium whitespace-nowrap">{subValue}</span>}
     </div>
   );
 };
@@ -142,7 +142,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
 
   const HeaderCell = ({ label, field, className = "" }: { label: string, field: keyof Transaction, className?: string }) => (
     <th 
-      className={`py-3 px-3 font-semibold border-b border-slate-700 bg-slate-900 text-slate-400 text-xs uppercase tracking-wider sticky top-0 z-10 select-none cursor-pointer group hover:text-white transition-colors ${className}`}
+      className={`py-3 px-3 font-semibold border-b border-slate-700 bg-slate-900 text-slate-400 text-xs uppercase tracking-wider sticky top-0 z-10 select-none cursor-pointer group hover:text-white transition-colors whitespace-nowrap ${className}`}
       onClick={() => handleSort(field)}
     >
       <div className={`flex items-center gap-1.5 ${className.includes('text-right') ? 'justify-end' : className.includes('text-center') ? 'justify-center' : 'justify-start'}`}>
@@ -156,8 +156,8 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
     <div className="flex flex-col h-full bg-slate-800/50 rounded-xl border border-slate-700 shadow-2xl overflow-hidden backdrop-blur-sm">
       
       {/* 1. Integrated Dashboard Header (The "Ticker") */}
-      <div className="bg-slate-900 border-b border-slate-700 flex flex-nowrap overflow-x-auto no-scrollbar">
-        <div className="flex items-center px-4 py-2 border-r border-slate-700/50 bg-slate-950/30">
+      <div className="bg-slate-900 border-b border-slate-700 flex flex-nowrap overflow-x-auto no-scrollbar items-center">
+        <div className="flex items-center px-4 py-2 border-r border-slate-700/50 bg-slate-950/30 flex-shrink-0">
            <Activity className="text-emerald-500 animate-pulse" size={20} />
         </div>
         <DashboardTickerItem 
@@ -181,8 +181,8 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
           subValue={`${transactions.filter(t => t.status === 'pending').length} Deals`}
           type="neutral"
         />
-        <div className="flex-1 flex items-center justify-end px-4 gap-2">
-           <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+        <div className="flex-1 flex items-center justify-end px-4 gap-2 min-w-[200px]">
+           <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 hidden sm:flex">
               {['all', 'income', 'expense'].map((f) => (
                 <button
                   key={f}
@@ -195,7 +195,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
            </div>
            <button 
             onClick={handleAdd}
-            className="flex items-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md transition-all shadow-lg shadow-emerald-900/20 active:translate-y-0.5"
+            className="flex items-center gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md transition-all shadow-lg shadow-emerald-900/20 active:translate-y-0.5 whitespace-nowrap"
           >
             <Plus size={14} /> NEW ENTRY
           </button>
@@ -204,7 +204,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
       
       {/* 2. The Grid */}
       <div className="flex-1 overflow-auto custom-scrollbar relative bg-slate-900/40">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full text-left border-collapse min-w-[800px] lg:min-w-full">
           <thead>
             <tr className="shadow-sm">
               <HeaderCell label="Date" field="date" className="w-32 pl-4" />
@@ -278,7 +278,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
                 <td className="p-1 text-center">
                    <button 
                     onClick={() => handleUpdate(t.id, 'status', t.status === 'completed' ? 'pending' : 'completed')}
-                    className={`inline-flex items-center justify-center w-full gap-1.5 px-2 py-1.5 rounded text-[10px] uppercase tracking-wider font-bold transition-all ${t.status === 'completed' ? 'text-slate-400 hover:text-emerald-400' : 'text-amber-400 bg-amber-500/10'}`}
+                    className={`inline-flex items-center justify-center w-full gap-1.5 px-2 py-1.5 rounded text-[10px] uppercase tracking-wider font-bold transition-all whitespace-nowrap ${t.status === 'completed' ? 'text-slate-400 hover:text-emerald-400' : 'text-amber-400 bg-amber-500/10'}`}
                    >
                      {t.status === 'completed' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
                      {t.status}
