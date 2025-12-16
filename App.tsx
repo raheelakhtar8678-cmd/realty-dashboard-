@@ -7,7 +7,7 @@ import { StorageService } from './services/storage';
 import ControlPanel from './components/ControlPanel';
 import PortfolioGrid from './components/PortfolioGrid';
 import AuthScreen from './components/AuthScreen';
-import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle, Menu, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Table, Building, Wallet, TrendingUp, TrendingDown, DollarSign, Home, Activity, LogOut, User as UserIcon, Loader2, AlertCircle, Menu, X } from 'lucide-react';
 
 const SESSION_KEY = 'realty_current_user';
 
@@ -19,13 +19,14 @@ export default function App() {
   // App State
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [settings, setSettings] = useState<GlobalSettings>(INITIAL_SETTINGS);
-  const [showAnalytics, setShowAnalytics] = useState(true);
+  const [showAnalytics, setShowAnalytics] = useState(true); // Default to showing dashboard
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   
   // Mobile UI State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // 1. Check for existing session on mount
   useEffect(() => {
     const savedUser = localStorage.getItem(SESSION_KEY);
     if (savedUser) {
@@ -34,6 +35,7 @@ export default function App() {
     setIsAuthChecking(false);
   }, []);
 
+  // 2. Load User Data when currentUser changes
   useEffect(() => {
     async function load() {
       if (currentUser) {
@@ -53,6 +55,7 @@ export default function App() {
     load();
   }, [currentUser]);
 
+  // 3. Auto-save Data
   useEffect(() => {
     if (currentUser && isDataLoaded) {
       const timer = setTimeout(() => {
@@ -62,6 +65,7 @@ export default function App() {
     }
   }, [transactions, settings, currentUser, isDataLoaded]);
 
+  // Derived State
   const metrics = useMemo(() => calculateMetrics(transactions, settings), [transactions, settings]);
   const chartData = useMemo(() => getChartData(transactions, settings), [transactions, settings]);
   const categoryData = useMemo(() => getCategoryData(transactions), [transactions]);
@@ -178,7 +182,7 @@ export default function App() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-900">
         
-        {/* Top Navigation */}
+        {/* Top Navigation Bar */}
         <header className="h-14 border-b border-slate-800 bg-slate-900/95 backdrop-blur flex items-center justify-between px-4 lg:px-6 z-10 shrink-0">
            <div className="flex items-center gap-4">
               <button 
@@ -207,7 +211,7 @@ export default function App() {
         {/* Scrollable Work Area */}
         <main className="flex-1 overflow-y-auto p-0 scroll-smooth flex flex-col">
           
-          {/* Analytics Deck */}
+          {/* Collapsible Analytics Deck */}
           <div className={`
             bg-slate-900 border-b border-slate-800 transition-all duration-500 ease-in-out overflow-hidden
             ${showAnalytics ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}
@@ -225,7 +229,7 @@ export default function App() {
                         <span className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-rose-500"></div>EXP</span>
                       </div>
                    </div>
-                   <div className="h-[250px] lg:h-[350px] w-full flex-1">
+                   <div className="h-[250px] lg:h-[300px] w-full flex-1">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{top: 10, right: 10, left: 0, bottom: 0}}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.5} />

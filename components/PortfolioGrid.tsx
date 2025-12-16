@@ -61,7 +61,7 @@ const DashboardTickerItem = ({ label, value, subValue, type, className="" }: { l
   };
 
   return (
-    <div className={`flex flex-col justify-center px-4 py-3 lg:py-4 border-r border-b lg:border-b-0 border-slate-800 last:border-r-0 ${type !== 'neutral' ? colors[type] : 'border-slate-800'} ${className}`}>
+    <div className={`flex flex-col justify-center px-4 py-3 lg:py-4 border-r border-b lg:border-b-0 border-slate-800 last:border-r-0 min-w-[140px] lg:min-w-0 ${type !== 'neutral' ? colors[type] : 'border-slate-800'} ${className}`}>
       <span className="text-[10px] uppercase tracking-wider font-bold opacity-70 mb-1 whitespace-nowrap">{label}</span>
       <div className="flex items-baseline gap-2">
          <span className="text-xl lg:text-2xl font-mono font-bold tracking-tight whitespace-nowrap leading-none">{value}</span>
@@ -156,11 +156,11 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
   return (
     <div className="flex flex-col h-full bg-slate-900 rounded-xl border border-slate-700 shadow-2xl overflow-hidden">
       
-      {/* 1. Dashboard Header - Fixed Grid Layout for Desktop */}
+      {/* 1. Dashboard Header (Ticker) */}
       <div className="flex flex-col lg:flex-row border-b border-slate-800 bg-slate-950">
         
-        {/* Stats Grid - Forces proper width distribution on desktop */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 lg:flex-1 w-full">
+        {/* Stats Grid - Horizontal Scroll on Mobile, Fixed Grid on Desktop */}
+        <div className="flex overflow-x-auto lg:overflow-visible lg:grid lg:grid-cols-4 lg:flex-1 w-full no-scrollbar">
             <DashboardTickerItem 
               label="Net Cash Flow" 
               value={`$${metrics.net.toLocaleString()}`} 
@@ -188,7 +188,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
         </div>
 
         {/* Controls Toolbar */}
-        <div className="flex items-center justify-between lg:justify-end gap-3 px-4 py-2 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800">
+        <div className="flex items-center justify-between lg:justify-end gap-3 px-4 py-2 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 shrink-0">
            <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 shrink-0">
               {['all', 'income', 'expense'].map((f) => (
                 <button
@@ -211,7 +211,7 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
       
       {/* 2. The Data Grid */}
       <div className="flex-1 overflow-auto custom-scrollbar relative bg-slate-900">
-        <table className="w-full text-left border-collapse min-w-[900px]">
+        <table className="w-full text-left border-collapse min-w-[900px] lg:min-w-full">
           <thead>
             <tr>
               <HeaderCell label="Date" field="date" className="w-36 pl-6" />
