@@ -211,8 +211,8 @@ const PortfolioGrid: React.FC<Props> = ({ transactions, setTransactions }) => {
         </div>
       </div>
       
-      {/* Data Grid */}
-      <div className="flex-1 overflow-auto custom-scrollbar relative bg-slate-900 pb-20 md:pb-0">
+      {/* Data Grid - Added padding-bottom to avoid FAB overlap */}
+      <div className="flex-1 overflow-auto custom-scrollbar relative bg-slate-900 pb-28 md:pb-0">
         <table className="w-full text-left border-collapse min-w-[900px] xl:min-w-full">
           <thead>
             <tr>
